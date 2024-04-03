@@ -37,6 +37,13 @@ AA_THREE_TO_ONE = {
     "UNK": "X",
 }
 
+
+def aa_three_to_one(aa):
+    if aa in AA_THREE_TO_ONE:
+        return AA_THREE_TO_ONE[aa]
+    return "X"
+
+
 esm_alphabet = esm.data.Alphabet.from_architecture("ESM-1b")
 
 
@@ -101,10 +108,10 @@ def unpad_dense_batch(x, mask, ptr):
 
 
 def to_nested_tensor(
-    x: Tensor,
-    batch: Optional[Tensor] = None,
-    ptr: Optional[Tensor] = None,
-    batch_size: Optional[int] = None,
+        x: Tensor,
+        batch: Optional[Tensor] = None,
+        ptr: Optional[Tensor] = None,
+        batch_size: Optional[int] = None,
 ) -> torch.Tensor:
     """Copied from PyG implementation"""
     if ptr is not None:
@@ -124,8 +131,8 @@ def to_nested_tensor(
 
 
 def from_nested_tensor(
-    x: Tensor,
-    return_batch: bool = False,
+        x: Tensor,
+        return_batch: bool = False,
 ):
     """Copied from PyG implementation"""
     if not x.is_nested:
@@ -226,12 +233,12 @@ def tqdm_joblib(tqdm_object):
 
 
 def distribute_function(
-    func: Callable,
-    X: Iterable,
-    n_jobs: int,
-    description: str = "",
-    total: int = 1,
-    **kwargs,
+        func: Callable,
+        X: Iterable,
+        n_jobs: int,
+        description: str = "",
+        total: int = 1,
+        **kwargs,
 ) -> Any:
     """Distributes function `func` over iterable `X` using `n_jobs` cores.
 
@@ -256,7 +263,7 @@ def distribute_function(
 
 def make_batches(l, n):
     """Make chunks of size n from list l"""
-    return [l[i : i + n] for i in range(0, len(l), n)]
+    return [l[i: i + n] for i in range(0, len(l), n)]
 
 
 def rbf(D, num_rbf):
@@ -275,7 +282,7 @@ def get_rbf(X):
 
 
 def get_graph_from_ps_protein_worker(
-    protein, eps=8.0, use_rbfs=True, mask_cls_idx=False
+        protein, eps=8.0, use_rbfs=True, mask_cls_idx=False
 ):
     """Converts an avro dictionary to a pytorch geometric graph."""
     sequence = torch.LongTensor(

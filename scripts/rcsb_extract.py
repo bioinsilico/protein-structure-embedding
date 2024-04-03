@@ -11,9 +11,6 @@ from torch_geometric.utils import unbatch
 from pst.esm2 import PST
 from scripts.rcsb_dataset import RcsbDataset
 
-from networks.transformer_nn import TransformerEmbeddingCosine
-from lightning_module.lightning_embedding import LitStructureEmbedding
-
 from scripts.rcsb_embedding import RcsbEmbeddingModel
 
 

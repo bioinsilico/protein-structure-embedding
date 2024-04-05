@@ -46,7 +46,7 @@ def parse_args():
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=8,
+        default=1,
         help="Batch size for the data loader"
     )
     parser.add_argument(
@@ -93,12 +93,12 @@ def main():
     )
 
     embedding_model = RcsbEmbeddingModel(
-        path="/Users/joan/devel/nn-biozernike/nn-biozernike/epoch=0-step=888000.ckpt",
+        model_path="/Users/joan/data/structure-embedding/pst_t33_so/rcsb/model/epoch=0-pr_auc=0.95.ckpt",
         input_features=1280,
         dim_feedforward=2048,
         hidden_layer=1280,
         nhead=8,
-        num_layers=2
+        num_layers=6
     )
 
     print("DataLoader ready")

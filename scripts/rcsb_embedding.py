@@ -8,7 +8,7 @@ class RcsbEmbeddingModel:
 
     def __init__(
             self,
-            path,
+            model_path,
             input_features=1280,
             dim_feedforward=2048,
             hidden_layer=1280,
@@ -24,7 +24,7 @@ class RcsbEmbeddingModel:
             num_layers=num_layers
         )
         lit_model = LitStructureEmbedding.load_from_checkpoint(
-            path,
+            model_path,
             net=net,
             map_location=torch.device(device)
         )

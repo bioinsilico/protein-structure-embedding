@@ -52,7 +52,9 @@ class RcsbDataset(Dataset):
 
     def load_instances(self):
         embedding_list = set([".".join(r.split(".")[0:2]) for r in os.listdir(self.embedding_dir)] if self.embedding_dir else [])
-        for r in os.listdir(self.graph_dir):
+        graph_files = [f"{self.graph_dir}/{r}" for r in os.listdir(self.graph_dir)]
+        graph_files = [".".join(r.split("/")[-1].split(".")[0:2]) for r in sorted(graph_files, key=os.path.getsize)]
+        for r in graph_files:
             row = r.split(".")
             if f"{row[0]}.{row[1]}" not in embedding_list:
                 self.instances.append(f"{row[0]}.{row[1]}")

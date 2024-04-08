@@ -75,7 +75,7 @@ def main():
         model, model_cfg = PST.from_pretrained_url(
             cfg.model,
             pretrained_path,
-            map_location=torch.device("cpu"),
+            map_location=torch.device(cfg.device),
         )
     model.eval()
     model.to(cfg.device)
@@ -98,7 +98,8 @@ def main():
         dim_feedforward=2048,
         hidden_layer=1280,
         nhead=8,
-        num_layers=6
+        num_layers=6,
+        device=cfg.device
     )
 
     print("DataLoader ready")

@@ -33,6 +33,12 @@ def parse_args():
         help="List of PDB entry file",
     )
     parser.add_argument(
+        "--embedding_model_path",
+        type=str,
+        default="pst_t6",
+        help="Name of pretrained model to download (see README for models)",
+    )
+    parser.add_argument(
         "--model",
         type=str,
         default="pst_t6",
@@ -93,7 +99,7 @@ def main():
     )
 
     embedding_model = RcsbEmbeddingModel(
-        model_path="/Users/joan/data/structure-embedding/pst_t33_so/rcsb/model/epoch=0-pr_auc=0.95.ckpt",
+        model_path=cfg.embedding_model_path,
         input_features=1280,
         dim_feedforward=2048,
         hidden_layer=1280,
@@ -111,7 +117,7 @@ def main():
             n = cfg.batch_size * batch_idx + idx
             print(f"Representation of: {dataset.get_instance(n)}")
             x = embedding_model.embedding(protein_repr)
-            pd.DataFrame(x.numpy()).to_csv(f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.csv", header=False, index=False)
+            pd.DataFrame(x.to('cpu').numpy()).to_csv(f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.csv", header=False, index=False)
 
 
 if __name__ == "__main__":

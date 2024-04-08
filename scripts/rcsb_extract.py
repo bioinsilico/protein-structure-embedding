@@ -35,8 +35,8 @@ def parse_args():
     parser.add_argument(
         "--embedding_model_path",
         type=str,
-        default="pst_t6",
-        help="Name of pretrained model to download (see README for models)",
+        required=True,
+        help="Path to the pretrained chain embedding model",
     )
     parser.add_argument(
         "--model",

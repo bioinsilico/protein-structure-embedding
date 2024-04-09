@@ -1,4 +1,6 @@
 import argparse
+import time
+
 import pandas as pd
 
 import torch
@@ -110,6 +112,7 @@ def main():
 
     print("DataLoader ready")
     for batch_idx, data in enumerate(data_loader):
+        start = time.process_time()
         data = data.to(cfg.device)
         out = model(data, return_repr=True, aggr=cfg.aggr)
         out, batch = out[data.idx_mask], data.batch[data.idx_mask]
@@ -118,6 +121,8 @@ def main():
             print(f"Representation of: {dataset.get_instance(n)}")
             x = embedding_model.embedding(protein_repr)
             pd.DataFrame(x.to('cpu').numpy()).to_csv(f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.csv", header=False, index=False)
+        end = time.process_time()
+        print(f"Total time {end-start}")
 
 
 if __name__ == "__main__":

@@ -37,7 +37,6 @@ def parse_args():
     parser.add_argument(
         "--embedding_model_path",
         type=str,
-        required=True,
         help="Path to the pretrained chain embedding model",
     )
     parser.add_argument(
@@ -108,7 +107,7 @@ def main():
         nhead=8,
         num_layers=6,
         device=cfg.device
-    )
+    ) if cfg.embedding_model_path else None
 
     print("DataLoader ready")
     for batch_idx, data in enumerate(data_loader):
@@ -116,11 +115,15 @@ def main():
         data = data.to(cfg.device)
         out = model(data, return_repr=True, aggr=cfg.aggr)
         out, batch = out[data.idx_mask], data.batch[data.idx_mask]
-        for idx, protein_repr in enumerate(list(unbatch(out, batch))):
-            n = cfg.batch_size * batch_idx + idx
-            print(f"Representation of: {dataset.get_instance(n)}")
-            x = embedding_model.embedding(protein_repr)
-            pd.DataFrame(x.to('cpu').numpy()).to_csv(f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.csv", header=False, index=False)
+        protein_repr_batches = list(unbatch(out, batch))
+        if len(protein_repr_batches) == 0:
+            continue
+        if embedding_model:
+            for idx, protein_repr in enumerate(protein_repr_batches):
+                n = cfg.batch_size * batch_idx + idx
+                print(f"Representation of: {dataset.get_instance(n)}")
+                x = embedding_model.embedding(protein_repr)
+                pd.DataFrame(x.to('cpu').numpy()).to_csv(f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.csv", header=False, index=False)
         end = time.process_time()
         print(f"Total time {end-start}")
 

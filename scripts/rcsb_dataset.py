@@ -83,16 +83,9 @@ class RcsbDataset(Dataset):
         x = torch.cat(
             [
                 torch.LongTensor([self.esm_alphabet.cls_idx]),
-                torch.LongTensor(
-                    [
-                        self.esm_alphabet.get_idx(res)
-                        for res in self.esm_alphabet.tokenize(
-                        "".join(
-                            [aa_three_to_one(c.parent.resname) for c in ca]
-                        )
-                    )
-                    ]
-                ),
+                torch.LongTensor([
+                    self.esm_alphabet.get_idx(res) for res in self.esm_alphabet.tokenize("".join([aa_three_to_one(c.parent.resname) for c in ca]))
+                ]),
                 torch.LongTensor([self.esm_alphabet.eos_idx]),
             ]
         )

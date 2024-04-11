@@ -2,6 +2,7 @@ import contextlib
 import math
 from typing import Any, Callable, Iterable, List, Optional
 
+import Bio
 import esm
 import joblib
 import requests
@@ -39,9 +40,7 @@ AA_THREE_TO_ONE = {
 
 
 def aa_three_to_one(aa):
-    if aa in AA_THREE_TO_ONE:
-        return AA_THREE_TO_ONE[aa]
-    return "X"
+    return Bio.PDB.Polypeptide. Bio.PDB.Polypeptide.three_to_one(aa)
 
 
 esm_alphabet = esm.data.Alphabet.from_architecture("ESM-1b")

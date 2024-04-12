@@ -23,7 +23,7 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--instance_list_file",
+        "--instance_list",
         type=str,
         required=True,
         help="List of PDB entry file",
@@ -88,7 +88,7 @@ def main():
     model.to(cfg.device)
 
     dataset = RcsbDataset(
-        instance_list_file=cfg.instance_list_file,
+        instance_list=cfg.instance_list,
         graph_dir=f"{cfg.out_dir}/graph",
         embedding_dir=f"{cfg.out_dir}/embedding"
     )
@@ -101,9 +101,9 @@ def main():
 
     embedding_model = RcsbEmbeddingModel(
         model_path=cfg.embedding_model_path,
-        input_features=1280,
+        input_features=640,
         dim_feedforward=2048,
-        hidden_layer=1280,
+        hidden_layer=640,
         nhead=8,
         num_layers=6,
         device=cfg.device
@@ -124,6 +124,11 @@ def main():
                 print(f"Representation of: {dataset.get_instance(n)}")
                 x = embedding_model.embedding(protein_repr)
                 pd.DataFrame(x.to('cpu').numpy()).to_csv(f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.csv", header=False, index=False)
+        else:
+            for idx, protein_repr in enumerate(protein_repr_batches):
+                n = cfg.batch_size * batch_idx + idx
+                print(f"Representation of: {dataset.get_instance(n)}")
+                torch.save(protein_repr, f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.pt")
         end = time.process_time()
         print(f"Total time {end-start}")
 

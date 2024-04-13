@@ -23,4 +23,5 @@ dependencies:
       - pyprojroot 
       - scikit-learn
       - hydra-core 
-      - tensorboard 
+      - tensorboard
+      - mmcif

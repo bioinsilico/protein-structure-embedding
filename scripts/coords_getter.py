@@ -5,6 +5,7 @@ from mmcif.io.IoAdapterCore import IoAdapterCore
 
 aas = ["GLY", "ALA", "VAL", "LEU", "ILE", "PHE", "TYR", "TRP", "PRO", "HIS",
        "LYS", "ARG", "SER", "THR", "GLU", "GLN", "ASP", "ASN", "CYS", "MET"]
+min_num_residues = 10
 
 
 def get_poly_entities(data_container):
@@ -31,7 +32,8 @@ def get_ca_coords(data_container, poly_ent_ids: list):
             continue
         current_asym_id = d_row["label_asym_id"]
         if asym_id is not None and current_asym_id != asym_id:
-            if len(coords_current_chain) >= 10:  # we'll keep only chains with at least 10 residues
+            # we'll keep only chains with at least this residues. This should also filter out dna/rna
+            if len(coords_current_chain) >= min_num_residues:
                 polychains_coords[asym_id] = coords_current_chain
             coords_current_chain = []
         aa_type = d_row["label_comp_id"]
@@ -41,7 +43,7 @@ def get_ca_coords(data_container, poly_ent_ids: list):
         if atom_type == "CA" and model_num == "1" and aa_type in aas and (alt_loc == "." or alt_loc == "A"):
             coords_current_chain.append([float(d_row["Cartn_x"]), float(d_row["Cartn_y"]), float(d_row["Cartn_z"])])
         asym_id = current_asym_id
-    if len(coords_current_chain) >= 10 and asym_id not in polychains_coords:
+    if len(coords_current_chain) >= min_num_residues and asym_id not in polychains_coords:
         polychains_coords[asym_id] = coords_current_chain
     return polychains_coords
 

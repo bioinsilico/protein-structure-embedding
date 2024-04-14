@@ -51,8 +51,11 @@ class RcsbDataset(Dataset):
                 continue
 
             print(f"Processing entry: {entry_id}")
-            for (ch, data) in self.get_graph_from_entry_id(entry_id):
-                torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.{ch}.pt"))
+            try:
+                for (ch, data) in self.get_graph_from_entry_id(entry_id):
+                    torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.{ch}.pt"))
+            except:
+                print(f"Entry {entry_id} failed")
 
             os.remove(f"/tmp/{entry_id}.cif")
 

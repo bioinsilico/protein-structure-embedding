@@ -19,41 +19,31 @@ def get_poly_entities(data_container):
     return poly_ent_ids
 
 
-def get_entity_to_asym_map(data_container):
+def get_ca_coords(data_container, poly_ent_ids: list):
     atom_sites = data_container.getObj('atom_site')
-    entity_to_asym = {}
+    coords_current_chain = []
+    polychains_coords = {}
+    asym_id = None
     for i in range(0, len(atom_sites.data)):
         d_row = atom_sites.getRowAttributeDict(i)
         ent_id = d_row["label_entity_id"]
-        current_asym_id = d_row["label_asym_id"]
-        if ent_id not in entity_to_asym:
-            entity_to_asym[ent_id] = {current_asym_id}
-        else:
-            entity_to_asym[ent_id].add(current_asym_id)
-    return entity_to_asym
-
-
-def get_ca_coords(data_container, asym_id: str):
-
-    atom_sites = data_container.getObj('atom_site')
-
-    coords = []
-    for i in range(0, len(atom_sites.data)):
-        d_row = atom_sites.getRowAttributeDict(i)
-        current_asym_id = d_row["label_asym_id"]
-        if current_asym_id != asym_id:
+        if ent_id not in poly_ent_ids:
             continue
+        current_asym_id = d_row["label_asym_id"]
+        if asym_id is not None and current_asym_id != asym_id:
+            if len(coords_current_chain) >= 10:  # we'll keep only chains with at least 10 residues
+                polychains_coords[asym_id] = coords_current_chain
+            coords_current_chain = []
         aa_type = d_row["label_comp_id"]
         atom_type = d_row["label_atom_id"]
-        model_num = int(d_row["pdbx_PDB_model_num"])
-        if aa_type not in aas:
-            continue
-        if atom_type != "CA":
-            continue
-        if model_num != 1:
-            continue
-        coords.append([d_row["Cartn_x"], d_row["Cartn_y"], d_row["Cartn_z"]])
-    return coords
+        model_num = d_row["pdbx_PDB_model_num"]
+        alt_loc = d_row["label_alt_id"]
+        if atom_type == "CA" and model_num == "1" and aa_type in aas and (alt_loc == "." or alt_loc == "A"):
+            coords_current_chain.append([float(d_row["Cartn_x"]), float(d_row["Cartn_y"]), float(d_row["Cartn_z"])])
+        asym_id = current_asym_id
+    if len(coords_current_chain) >= 10 and asym_id not in polychains_coords:
+        polychains_coords[asym_id] = coords_current_chain
+    return polychains_coords
 
 
 def get_coords_from_file(local_cif_file):
@@ -68,14 +58,9 @@ def get_coords_from_file(local_cif_file):
     data_container = list_data_container[0]
 
     poly_ent_ids = get_poly_entities(data_container)
-    entity_to_asym = get_entity_to_asym_map(data_container)
 
-    chain_coords = {}
-    for ent_id in poly_ent_ids:
-        for asym_id in entity_to_asym[ent_id]:
-            cas = get_ca_coords(data_container, asym_id)
-            if len(cas) != 0:
-                chain_coords[asym_id] = cas
+    chain_coords = get_ca_coords(data_container, poly_ent_ids)
+
     return chain_coords
 
 
@@ -91,7 +76,7 @@ def get_coords_for_pdb_id(pdb_id, tmp_dir):
 
 def main():
 
-    chain_coords = get_coords_for_pdb_id("3hbx", "/tmp")
+    chain_coords = get_coords_for_pdb_id("2trx", "/tmp")
     print(chain_coords.keys())
 
 

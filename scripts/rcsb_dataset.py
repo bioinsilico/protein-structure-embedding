@@ -54,8 +54,6 @@ class RcsbDataset(Dataset):
             for (ch, data) in self.get_graph_from_entry_id(entry_id):
                 torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.{ch}.pt"))
 
-            os.remove(f"/tmp/{entry_id}.cif")
-
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
             print(f"Processing file: {file}")
@@ -76,10 +74,10 @@ class RcsbDataset(Dataset):
                 print(f"Embedding {row[0]}.{row[1]} is ready")
 
     def get_graph_from_entry_id(self, pdb):
-        cas = get_coords_for_pdb_id(pdb, "/tmp")
+        cas, seqs = get_coords_for_pdb_id(pdb, "/tmp")
         graphs = []
         for ch in cas.keys():
-            graphs.append((ch, self.get_chain_graph(cas[ch])))
+            graphs.append((ch, self.get_chain_graph(cas[ch], seqs[ch])))
         return graphs
 
     def get_graph_from_pdb_file(self, pdb_file):
@@ -91,12 +89,14 @@ class RcsbDataset(Dataset):
         chains = [s.id for s in structure.get_chains()]
         graphs = []
         for ch in chains:
-            ca = [atom.get_coord() for atom in structure.get_atoms() if
-                  atom.get_name() == "CA" and is_aa(atom.parent.resname) and atom.parent.parent.id == ch]
-            graphs.append((ch, self.get_chain_graph(ca)))
+            ca_atoms = [atom for atom in structure.get_atoms() if
+                        atom.get_name() == "CA" and is_aa(atom.parent.resname) and atom.parent.parent.id == ch]
+            ca = [atom.get_coords() for atom in ca_atoms]
+            sequence = "".join([protein_letters_3to1_extended[c.parent.resname] for c in ca_atoms])
+            graphs.append((ch, self.get_chain_graph(ca, sequence)))
         return graphs
 
-    def get_chain_graph(self, ca: list):
+    def get_chain_graph(self, ca: list, sequence: str):
         structure = torch.from_numpy(np.asarray(ca))
         edge_index = gnn.radius_graph(
             structure, r=self.eps, loop=False, num_workers=self.num_workers
@@ -107,7 +107,7 @@ class RcsbDataset(Dataset):
                 torch.LongTensor([self.esm_alphabet.cls_idx]),
                 torch.LongTensor([
                     self.esm_alphabet.get_idx(res) for res in
-                    self.esm_alphabet.tokenize("".join([protein_letters_3to1_extended[c.parent.resname] for c in ca]))
+                    self.esm_alphabet.tokenize(sequence)
                 ]),
                 torch.LongTensor([self.esm_alphabet.eos_idx]),
             ]

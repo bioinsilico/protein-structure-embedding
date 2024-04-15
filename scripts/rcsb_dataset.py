@@ -56,8 +56,8 @@ class RcsbDataset(Dataset):
                     torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.{ch}.pt"))
             except:
                 print(f"Entry {entry_id} failed")
-
-            os.remove(f"/tmp/{entry_id}.cif")
+            if os.path.isfile(f"/tmp/{entry_id}.cif"):
+                os.remove(f"/tmp/{entry_id}.cif")
 
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):

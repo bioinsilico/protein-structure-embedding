@@ -60,7 +60,6 @@ def get_coords_from_file(local_cif_file):
     data_container = list_data_container[0]
 
     poly_ent_ids = get_poly_entities(data_container)
-
     chain_coords = get_ca_coords(data_container, poly_ent_ids)
 
     return chain_coords
@@ -72,6 +71,7 @@ def get_coords_for_pdb_id(pdb_id, tmp_dir):
     print("Downloading %s to %s" % (url, filepath_local))
     urllib.request.urlretrieve(url, filepath_local)
     chain_coords = get_coords_from_file(filepath_local)
+    print("Found %d valid protein chains in %s. Asym_ids are : %s" % (len(chain_coords), pdb_id, chain_coords.keys()))
     os.remove(filepath_local)
     return chain_coords
 

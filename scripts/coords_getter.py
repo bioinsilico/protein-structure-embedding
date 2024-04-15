@@ -1,7 +1,5 @@
-import os
-import urllib.request
-from mmcif.io.IoAdapterCore import IoAdapterCore
 from Bio.Data.PDBData import protein_letters_3to1_extended
+from rcsb.utils.io.MarshalUtil import MarshalUtil
 
 
 aas = ["GLY", "ALA", "VAL", "LEU", "ILE", "PHE", "TYR", "TRP", "PRO", "HIS",
@@ -45,8 +43,8 @@ def get_ca_coords(data_container, poly_ent_ids: list):
         atom_type = d_row["label_atom_id"]
         model_num = d_row["pdbx_PDB_model_num"]
         alt_loc = d_row["label_alt_id"]
-        if atom_type == "CA" and model_num == "1" and aa_type in aas and (alt_loc == "." or alt_loc == "A"):
-            coords_current_chain.append([float(d_row["Cartn_x"]), float(d_row["Cartn_y"]), float(d_row["Cartn_z"])])
+        if atom_type == "CA" and model_num == 1 and aa_type in aas and (alt_loc == "." or alt_loc == "A"):
+            coords_current_chain.append([d_row["Cartn_x"], d_row["Cartn_y"], d_row["Cartn_z"]])
             current_seq.append(protein_letters_3to1_extended[aa_type])
         asym_id = current_asym_id
     if len(coords_current_chain) >= min_num_residues and asym_id not in polychains_coords:
@@ -55,39 +53,34 @@ def get_ca_coords(data_container, poly_ent_ids: list):
     return polychains_coords, polychains_seqs
 
 
-def get_coords_from_file(local_cif_file):
+def get_coords_from_file(cif_file_url):
     """
     Get 2 dictionaries: 1) coordinates, with keys asym_ids of protein polymer entities and values the
     coordinates as a list of 3-size lists; 2) sequences, with keys asym_ids of protein polymer entities and values the
     sequences (modelled residues and only standard aas)
     If no protein polymer entities found the dictionary will be empty.
-    :param local_cif_file:
+    :param cif_file_url: a link to a bcif file
     :return:
     """
-    io = IoAdapterCore()
-    list_data_container = io.readFile(local_cif_file)
-    data_container = list_data_container[0]
 
+    mU = MarshalUtil()
+    data_container_list = mU.doImport(cif_file_url, fmt="bcif")
+    data_container = data_container_list[0]
     poly_ent_ids = get_poly_entities(data_container)
     chain_coords, chain_seqs = get_ca_coords(data_container, poly_ent_ids)
 
     return chain_coords, chain_seqs
 
 
-def get_coords_for_pdb_id(pdb_id, tmp_dir):
-    url = "https://files.rcsb.org/download/%s.cif.gz" % pdb_id
-    filepath_local = os.path.join(tmp_dir, "%s.cif.gz" % pdb_id)
-    print("Downloading %s to %s" % (url, filepath_local))
-    urllib.request.urlretrieve(url, filepath_local)
-    chain_coords, chain_seqs = get_coords_from_file(filepath_local)
+def get_coords_for_pdb_id(pdb_id):
+    url = "https://models.rcsb.org/%s.bcif" % pdb_id
+    chain_coords, chain_seqs = get_coords_from_file(url)
     print("Found %d valid protein chains in %s. Asym_ids are : %s" % (len(chain_coords), pdb_id, ",".join(chain_coords.keys())))
-    os.remove(filepath_local)
     return chain_coords, chain_seqs
 
 
 def main():
-
-    chain_coords = get_coords_for_pdb_id("2trx", "/tmp")
+    chain_coords, chain_seqs = get_coords_for_pdb_id("2trx")
     print(chain_coords.keys())
 
 

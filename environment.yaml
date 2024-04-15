@@ -24,4 +24,4 @@ dependencies:
       - scikit-learn
       - hydra-core 
       - tensorboard
-      - mmcif
+      - rcsb.utils.io

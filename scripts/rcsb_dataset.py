@@ -74,7 +74,7 @@ class RcsbDataset(Dataset):
                 print(f"Embedding {row[0]}.{row[1]} is ready")
 
     def get_graph_from_entry_id(self, pdb):
-        cas, seqs = get_coords_for_pdb_id(pdb, "/tmp")
+        cas, seqs = get_coords_for_pdb_id(pdb)
         graphs = []
         for ch in cas.keys():
             graphs.append((ch, self.get_chain_graph(cas[ch], seqs[ch])))

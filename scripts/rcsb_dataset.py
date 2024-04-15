@@ -5,7 +5,7 @@ import torch
 import esm
 import torch_geometric.nn as gnn
 from torch_geometric.data import Data, Dataset
-from Bio.PDB import PDBList, FastMMCIFParser, PDBParser
+from Bio.PDB import PDBParser
 from Bio.PDB.Polypeptide import is_aa
 from Bio.Data.PDBData import protein_letters_3to1_extended
 from coords_getter import get_coords_for_pdb_id

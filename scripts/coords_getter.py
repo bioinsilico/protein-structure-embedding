@@ -62,18 +62,16 @@ def get_coords_from_file(cif_file_url):
     :param cif_file_url: a link to a bcif file
     :return:
     """
-
     mU = MarshalUtil()
     data_container_list = mU.doImport(cif_file_url, fmt="bcif")
     data_container = data_container_list[0]
     poly_ent_ids = get_poly_entities(data_container)
     chain_coords, chain_seqs = get_ca_coords(data_container, poly_ent_ids)
-
     return chain_coords, chain_seqs
 
 
 def get_coords_for_pdb_id(pdb_id):
-    url = "https://models.rcsb.org/%s.bcif" % pdb_id
+    url = "https://models.rcsb.org/%s.bcif" % pdb_id.lower()
     chain_coords, chain_seqs = get_coords_from_file(url)
     print("Found %d valid protein chains in %s. Asym_ids are : %s" % (len(chain_coords), pdb_id, ",".join(chain_coords.keys())))
     return chain_coords, chain_seqs

@@ -20,7 +20,7 @@ def get_poly_entities(data_container) -> set:
     return poly_ent_ids
 
 
-def get_ca_coords(data_container, poly_ent_ids: list):
+def get_ca_coords(data_container, poly_ent_ids: set):
     atom_sites = data_container.getObj('atom_site')
     coords_current_chain = []
     polychains_coords = {}
@@ -54,7 +54,7 @@ def get_ca_coords(data_container, poly_ent_ids: list):
     return polychains_coords, polychains_seqs
 
 
-def get_coords_from_file(cif_file_url):
+def get_coords_from_file(cif_file_url: str):
     """
     Get 2 dictionaries: 1) coordinates, with keys asym_ids of protein polymer entities and values the
     coordinates as a list of 3-size lists; 2) sequences, with keys asym_ids of protein polymer entities and values the
@@ -71,7 +71,7 @@ def get_coords_from_file(cif_file_url):
     return chain_coords, chain_seqs
 
 
-def get_coords_for_pdb_id(pdb_id):
+def get_coords_for_pdb_id(pdb_id: str):
     url = "https://models.rcsb.org/%s.bcif.gz" % pdb_id.lower()
     chain_coords, chain_seqs = get_coords_from_file(url)
     print("Found %d valid protein chains in %s. Asym_ids are : %s" % (len(chain_coords), pdb_id, ",".join(chain_coords.keys())))

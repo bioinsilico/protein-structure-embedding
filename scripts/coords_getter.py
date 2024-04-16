@@ -72,7 +72,7 @@ def get_coords_from_file(cif_file_url):
 
 
 def get_coords_for_pdb_id(pdb_id):
-    url = "https://models.rcsb.org/%s.bcif" % pdb_id.lower()
+    url = "https://models.rcsb.org/%s.bcif.gz" % pdb_id.lower()
     chain_coords, chain_seqs = get_coords_from_file(url)
     print("Found %d valid protein chains in %s. Asym_ids are : %s" % (len(chain_coords), pdb_id, ",".join(chain_coords.keys())))
     return chain_coords, chain_seqs

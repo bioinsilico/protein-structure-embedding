@@ -6,15 +6,15 @@ from rcsb.utils.io.MarshalUtil import MarshalUtil
 min_num_residues = 10
 
 
-def get_poly_entities(data_container):
+def get_poly_entities(data_container) -> set:
     entity = data_container.getObj('entity')
-    poly_ent_ids = []
+    poly_ent_ids = set()
     for i in range(0, len(entity.data)):
         d_row = entity.getRowAttributeDict(i)
         ent_id = d_row["id"]
         ent_type = d_row["type"]
         if ent_type == "polymer":
-            poly_ent_ids.append(ent_id)
+            poly_ent_ids.add(ent_id)
     return poly_ent_ids
 
 

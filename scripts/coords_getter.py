@@ -1,3 +1,5 @@
+import time
+
 from Bio.Data.PDBData import protein_letters_3to1_extended
 from Bio.PDB.Polypeptide import is_aa
 from rcsb.utils.io.MarshalUtil import MarshalUtil
@@ -77,8 +79,10 @@ def get_coords_for_pdb_id(pdb_id):
 
 
 def main():
+    start = time.process_time()
     chain_coords, chain_seqs = get_coords_for_pdb_id("2trx")
-    print(chain_coords.keys())
+    end = time.process_time()
+    print("Done in %f s. Keys: %s" % (end-start, ",".join(chain_coords.keys())))
 
 
 if __name__ == "__main__":

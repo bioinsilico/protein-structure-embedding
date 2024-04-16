@@ -1,9 +1,8 @@
 from Bio.Data.PDBData import protein_letters_3to1_extended
+from Bio.PDB.Polypeptide import is_aa
 from rcsb.utils.io.MarshalUtil import MarshalUtil
 
 
-aas = ["GLY", "ALA", "VAL", "LEU", "ILE", "PHE", "TYR", "TRP", "PRO", "HIS",
-       "LYS", "ARG", "SER", "THR", "GLU", "GLN", "ASP", "ASN", "CYS", "MET"]
 min_num_residues = 10
 
 
@@ -43,7 +42,7 @@ def get_ca_coords(data_container, poly_ent_ids: list):
         atom_type = d_row["label_atom_id"]
         model_num = d_row["pdbx_PDB_model_num"]
         alt_loc = d_row["label_alt_id"]
-        if atom_type == "CA" and model_num == 1 and aa_type in aas and (alt_loc == "." or alt_loc == "A"):
+        if atom_type == "CA" and model_num == 1 and is_aa(aa_type) and (alt_loc == "." or alt_loc == "A"):
             coords_current_chain.append([d_row["Cartn_x"], d_row["Cartn_y"], d_row["Cartn_z"]])
             current_seq.append(protein_letters_3to1_extended[aa_type])
         asym_id = current_asym_id

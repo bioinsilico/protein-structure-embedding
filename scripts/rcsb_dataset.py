@@ -23,7 +23,7 @@ class RcsbDataset(Dataset):
     ):
         self.instance_list = instance_list
         self.graph_dir = graph_dir
-        self.embedding_dir = embedding_dir
+        self.embedding_dir = embedding_dir if os.path.isdir(embedding_dir) else None
         self.eps = eps
         self.esm_alphabet = esm_alphabet
         self.num_workers = num_workers
@@ -53,7 +53,8 @@ class RcsbDataset(Dataset):
             print(f"Processing entry: {entry_id}")
             try:
                 for (ch, data) in self.get_graph_from_entry_id(entry_id):
-                    torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.{ch}.pt"))
+                    if data:
+                        torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.{ch}.pt"))
             except:
                 print(f"Entry {entry_id} failed")
             if os.path.isfile(f"/tmp/{entry_id}.cif"):
@@ -62,21 +63,26 @@ class RcsbDataset(Dataset):
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
             print(f"Processing file: {file}")
-            for (ch, data) in self.get_graph_from_pdb_file(f"{self.instance_list}/{file}"):
-                pdb = file.split(".")[0]
-                torch.save(data, os.path.join(self.graph_dir, f"{pdb}.{ch}.pt"))
+            try:
+                for (ch, data) in self.get_graph_from_pdb_file(f"{self.instance_list}/{file}"):
+                    if data:
+                        if file.endswith(".pdb"):
+                            file = ".".join(file.split(".")[0:-1])
+                        torch.save(data, os.path.join(self.graph_dir, f"{file}.{ch}.pt"))
+            except:
+                print(f"File {file} failed")
 
     def load_instances(self):
         embedding_list = set(
-            [".".join(r.split(".")[0:2]) for r in os.listdir(self.embedding_dir)] if self.embedding_dir else [])
+            [".".join(r.split(".")[0:-1]) for r in os.listdir(self.embedding_dir)] if self.embedding_dir else []
+        )
         graph_files = [f"{self.graph_dir}/{r}" for r in os.listdir(self.graph_dir)]
-        graph_files = [".".join(r.split("/")[-1].split(".")[0:2]) for r in sorted(graph_files, key=os.path.getsize)]
-        for r in graph_files:
-            row = r.split(".")
-            if f"{row[0]}.{row[1]}" not in embedding_list:
-                self.instances.append(f"{row[0]}.{row[1]}")
+        graph_files = [".".join(r.split("/")[-1].split(".")[0:-1]) for r in sorted(graph_files, key=os.path.getsize)]
+        for file in graph_files:
+            if f"{file}" not in embedding_list:
+                self.instances.append(f"{file}")
             else:
-                print(f"Embedding {row[0]}.{row[1]} is ready")
+                print(f"Embedding {file} is ready")
 
     def get_graph_from_entry_id(self, pdb):
         pdb_provider = PDBList()
@@ -87,20 +93,24 @@ class RcsbDataset(Dataset):
         )
         parser = FastMMCIFParser()
         structure = parser.get_structure(f"{pdb}-structure", f"/tmp/{pdb}.cif")
-        return self.get_graph_from_structure(structure)
+        return self.get_graph_from_structure(structure[0])
 
     def get_graph_from_pdb_file(self, pdb_file):
         parser = PDBParser()
         structure = parser.get_structure("structure", pdb_file)
-        return self.get_graph_from_structure(structure)
+        return self.get_graph_from_structure(structure[0])
 
     def get_graph_from_structure(self, structure):
         chains = [s.id for s in structure.get_chains()]
         return [(ch, self.get_chain_graph(structure, ch)) for ch in chains]
 
     def get_chain_graph(self, structure, ch):
-        ca = [atom for atom in structure.get_atoms() if
-              atom.get_name() == "CA" and is_aa(atom.parent.resname) and atom.parent.parent.id == ch]
+        ca = [
+            atom for atom in structure.get_atoms()
+            if atom.get_name() == "CA" and is_aa(atom.parent.resname) and atom.parent.parent.id == ch
+        ]
+        if len(ca) < 6:
+            return None
         structure = torch.from_numpy(np.asarray([c.get_coord() for c in ca]))
         edge_index = gnn.radius_graph(
             structure, r=self.eps, loop=False, num_workers=self.num_workers

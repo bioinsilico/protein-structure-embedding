@@ -6,7 +6,6 @@ import pandas as pd
 import torch
 from pathlib import Path
 
-
 from torch_geometric.loader import DataLoader
 from torch_geometric.utils import unbatch
 
@@ -42,8 +41,7 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=str,
-        default="pst_t6",
-        help="Name of pretrained model to download (see README for models)",
+        help="Name of pretrained model to download (see README for models)"
     )
     parser.add_argument(
         "--include-seq",
@@ -69,8 +67,7 @@ def parse_args():
 
 
 @torch.no_grad()
-def main():
-    cfg = parse_args()
+def load_model(cfg):
     pretrained_path = Path(f".cache/pst/{cfg.model}.pt")
     pretrained_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -86,6 +83,14 @@ def main():
         )
     model.eval()
     model.to(cfg.device)
+    return model
+
+
+@torch.no_grad()
+def main():
+    cfg = parse_args()
+
+    model = load_model(cfg) if cfg.model else None
 
     dataset = RcsbDataset(
         instance_list=cfg.instance_list,
@@ -110,6 +115,10 @@ def main():
     ) if cfg.embedding_model_path else None
 
     print("DataLoader ready")
+    if not model:
+        print("No residue level model provided exiting")
+        exit(0)
+
     for batch_idx, data in enumerate(data_loader):
         start = time.process_time()
         data = data.to(cfg.device)
@@ -123,14 +132,18 @@ def main():
                 n = cfg.batch_size * batch_idx + idx
                 print(f"Representation of: {dataset.get_instance(n)}")
                 x = embedding_model.embedding(protein_repr)
-                pd.DataFrame(x.to('cpu').numpy()).to_csv(f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.csv", header=False, index=False)
+                pd.DataFrame(x.to('cpu').numpy()).to_csv(
+                    f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.csv",
+                    header=False,
+                    index=False
+                )
         else:
             for idx, protein_repr in enumerate(protein_repr_batches):
                 n = cfg.batch_size * batch_idx + idx
                 print(f"Representation of: {dataset.get_instance(n)}")
                 torch.save(protein_repr, f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.pt")
         end = time.process_time()
-        print(f"Total time {end-start}")
+        print(f"Total time {end - start}")
 
 
 if __name__ == "__main__":

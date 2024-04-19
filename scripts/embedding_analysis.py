@@ -1,25 +1,42 @@
-
 import os
 import random
 
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-if __name__ == '__main__':
-    # Directory containing the vector files
-    directory = '/Users/joan/data/structure-embedding/pst_t30_so/cath/embedding'
+directory = '/Users/joan/data/structure-embedding/pst_t30_so/cath/embedding'
 
+
+def get_colors(n=1):
     colors = {"1": "red", "2": "green", "3": "blue"}
-    dom_color = {}
+    d_color = {}
 
     for r in open("/Users/joan/devel/nn-biozernike/nn-biozernike/resources/cath.tsv"):
         row = r.strip().split("\t")
-        dom_id = ".".join(row[1].split(".")[0:1])
+        dom_id = ".".join(row[1].split(".")[0:n])
         if dom_id not in colors:
             colors[dom_id] = "#%03x" % random.randint(0, 0xFFF)
-        dom_color[row[0]] = colors[dom_id]
+        d_color[row[0]] = colors[dom_id]
+
+    return d_color
+
+
+def plot(result, dom_color):
+    # Plot the 2D scatter plot with colored points
+    plt.figure(figsize=(8, 8))
+    for dom, color in dom_color.items():
+        indices = [i for i, f in enumerate(os.listdir(directory)) if dom in f]
+        plt.scatter(result[indices, 0], result[indices, 1], c=color, alpha=0.2)
+
+    plt.xlabel('Component 1')
+    plt.ylabel('Component 2')
+    plt.title('t-SNE')
+    plt.grid(False)
+    plt.show()
+
+
+if __name__ == '__main__':
 
     # List to store the vectors
     vectors = []
@@ -39,21 +56,12 @@ if __name__ == '__main__':
     tsne = TSNE(
         n_components=2,
         metric='cosine',
-        perplexity=60,
-        n_iter=260,
+        perplexity=5,
         init="pca"
     )
     tsne_result = tsne.fit_transform(data)
 
-    # Plot the 2D scatter plot with colored points
-    plt.figure(figsize=(8, 6))
-    for filename, color in dom_color.items():
-        indices = [i for i, f in enumerate(os.listdir(directory)) if filename in f]
-        plt.scatter(tsne_result[indices, 0], tsne_result[indices, 1], c=color, alpha=0.5)
-
-    plt.xlabel('Principal Component 1')
-    plt.ylabel('Principal Component 2')
-    plt.title('2D Scatter Plot after PCA')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    plot(tsne_result, get_colors(1))
+    plot(tsne_result, get_colors(2))
+    plot(tsne_result, get_colors(3))
+    plot(tsne_result, get_colors(4))

@@ -5,10 +5,10 @@ import torch
 import esm
 import torch_geometric.nn as gnn
 from torch_geometric.data import Data, Dataset
-from Bio.PDB import PDBList, FastMMCIFParser, PDBParser
-
+from Bio.PDB import PDBParser
 from Bio.PDB.Polypeptide import is_aa
 from Bio.Data.PDBData import protein_letters_3to1_extended
+from coords_getter import get_coords_for_pdb_id
 
 
 class RcsbDataset(Dataset):
@@ -57,8 +57,6 @@ class RcsbDataset(Dataset):
                         torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.{ch}.pt"))
             except:
                 print(f"Entry {entry_id} failed")
-            if os.path.isfile(f"/tmp/{entry_id}.cif"):
-                os.remove(f"/tmp/{entry_id}.cif")
 
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
@@ -85,15 +83,11 @@ class RcsbDataset(Dataset):
                 print(f"Embedding {file} is ready")
 
     def get_graph_from_entry_id(self, pdb):
-        pdb_provider = PDBList()
-        pdb_provider.retrieve_pdb_file(
-            pdb,
-            pdir="/tmp",
-            file_format="mmCif"
-        )
-        parser = FastMMCIFParser()
-        structure = parser.get_structure(f"{pdb}-structure", f"/tmp/{pdb}.cif")
-        return self.get_graph_from_structure(structure[0])
+        cas, seqs = get_coords_for_pdb_id(pdb)
+        graphs = []
+        for ch in cas.keys():
+            graphs.append((ch, self.get_chain_graph(cas[ch], seqs[ch])))
+        return graphs
 
     def get_graph_from_pdb_file(self, pdb_file):
         parser = PDBParser()
@@ -102,16 +96,17 @@ class RcsbDataset(Dataset):
 
     def get_graph_from_structure(self, structure):
         chains = [s.id for s in structure.get_chains()]
-        return [(ch, self.get_chain_graph(structure, ch)) for ch in chains]
+        graphs = []
+        for ch in chains:
+            ca_atoms = [atom for atom in structure.get_atoms() if
+                        atom.get_name() == "CA" and is_aa(atom.parent.resname) and atom.parent.parent.id == ch]
+            ca = [atom.get_coords() for atom in ca_atoms]
+            sequence = "".join([protein_letters_3to1_extended[c.parent.resname] for c in ca_atoms])
+            graphs.append((ch, self.get_chain_graph(ca, sequence)))
+        return graphs
 
-    def get_chain_graph(self, structure, ch):
-        ca = [
-            atom for atom in structure.get_atoms()
-            if atom.get_name() == "CA" and is_aa(atom.parent.resname) and atom.parent.parent.id == ch
-        ]
-        if len(ca) < 6:
-            return None
-        structure = torch.from_numpy(np.asarray([c.get_coord() for c in ca]))
+    def get_chain_graph(self, ca: list, sequence: str):
+        structure = torch.from_numpy(np.asarray(ca))
         edge_index = gnn.radius_graph(
             structure, r=self.eps, loop=False, num_workers=self.num_workers
         )
@@ -121,7 +116,7 @@ class RcsbDataset(Dataset):
                 torch.LongTensor([self.esm_alphabet.cls_idx]),
                 torch.LongTensor([
                     self.esm_alphabet.get_idx(res) for res in
-                    self.esm_alphabet.tokenize("".join([protein_letters_3to1_extended[c.parent.resname] for c in ca]))
+                    self.esm_alphabet.tokenize(sequence)
                 ]),
                 torch.LongTensor([self.esm_alphabet.eos_idx]),
             ]

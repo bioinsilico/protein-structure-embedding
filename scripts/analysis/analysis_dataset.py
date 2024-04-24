@@ -1,18 +1,9 @@
 import os
-import argparse
-
-import numpy as np
-from numpy import dot
-from numpy.linalg import norm
-
 import pandas as pd
-
-from sklearn.metrics import precision_recall_curve
-from sklearn.metrics import auc
-from sklearn.metrics import matthews_corrcoef
+import numpy as np
 
 
-class RcsbEmbeddingDataset:
+class AnalysisDataset:
     def __init__(
             self,
             embedding_path,
@@ -33,6 +24,7 @@ class RcsbEmbeddingDataset:
         for file in os.listdir(self.embedding_path):
             embedding_id = ".".join(file.split(".")[0:-2])
             v = np.array(list(pd.read_csv(f"{self.embedding_path}/{file}").iloc[:, 0].values))
+            v = v / np.linalg.norm(v)
             self.embeddings[embedding_id] = v
 
     def load_classes(self):
@@ -52,7 +44,12 @@ class RcsbEmbeddingDataset:
         while len(ids) > 0:
             embedding_i = ids.pop()
             for embedding_j in ids:
-                if embedding_i in self.embeddings_classes and embedding_j in self.embeddings_classes:
+                if (
+                    embedding_i in self.embeddings_classes and
+                    embedding_j in self.embeddings_classes and
+                    self.n_classes[self.embeddings_classes[embedding_i]] > 1 and
+                    self.n_classes[self.embeddings_classes[embedding_j]] > 1
+                ):
                     pred = 1 if self.embeddings_classes[embedding_i] == self.embeddings_classes[embedding_j] else 0
                     if pred == 1:
                         n_pos += 1
@@ -77,7 +74,10 @@ class RcsbEmbeddingDataset:
             )
 
     def domains(self):
-        for embedding_id in self.embeddings:
+        for embedding_id in [
+            e for e in self.embeddings
+            if e in self.embeddings_classes and self.n_classes[self.embeddings_classes[e]] > 1
+        ]:
             yield embedding_id, self.embeddings[embedding_id]
 
     def get_class(self, dom):
@@ -85,45 +85,3 @@ class RcsbEmbeddingDataset:
 
     def get_n_classes(self, name):
         return self.n_classes[name]
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--embedding_path', type=str, required=True)
-    parser.add_argument('--embedding_class_file', type=str, required=True)
-    args = parser.parse_args()
-
-    dataloader = RcsbEmbeddingDataset(
-        embedding_path=args.embedding_path,
-        embedding_class_file=args.embedding_class_file
-    )
-    y_pred = []
-    y_true = []
-    for e_i, e_j, b in dataloader.pairs():
-        p = dot(e_i, e_j) / (norm(e_i) * norm(e_j))
-        y_pred.append(p)
-        y_true.append(b)
-
-    precision, recall, _thresholds = precision_recall_curve(y_true, y_pred)
-
-    pr_auc = auc(recall, precision)
-    print("PR AUC", pr_auc)
-
-    y_pred = np.array(y_pred)
-    y_true = np.array(y_true)
-    N = 100
-    mcc = np.zeros(N)
-    thresholds = np.zeros(N)
-    for i, n in enumerate(range(0, N)):
-        thr = 1 - (1/N) * i
-        y_pred_bin = np.where(y_pred >= thr, 1, 0)
-        mcc[i] = matthews_corrcoef(y_true, y_pred_bin)
-        thresholds[i] = thr
-
-    # Find the optimal threshold
-    optimal_threshold = thresholds[np.argmax(mcc)]
-
-    # Print the results
-    print("Optimal threshold:", optimal_threshold)
-    print("MCC at optimal threshold:", mcc[np.argmax(mcc)])
-

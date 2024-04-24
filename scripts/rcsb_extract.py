@@ -12,7 +12,7 @@ from torch_geometric.utils import unbatch
 from pst.esm2 import PST
 from scripts.rcsb_dataset import RcsbDataset
 
-from scripts.rcsb_embedding import RcsbEmbeddingModel
+from scripts.rcsb_embedding_model import RcsbEmbeddingModel
 
 
 def parse_args():

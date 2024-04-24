@@ -5,7 +5,7 @@ from torch_geometric.loader import DataLoader
 from torch_geometric.utils import unbatch
 
 from pst.esm2 import PST
-from example_dataset import ExampleDataset
+from scripts.obsolete.example_dataset import ExampleDataset
 
 
 def parse_args():

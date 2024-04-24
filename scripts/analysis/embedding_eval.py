@@ -1,4 +1,5 @@
 import os
+import argparse
 
 import numpy as np
 from numpy import dot
@@ -14,14 +15,14 @@ from sklearn.metrics import matthews_corrcoef
 class RcsbEmbeddingDataset:
     def __init__(
             self,
-            embedding_dir,
+            embedding_path,
             embedding_class_file
     ):
         self.embedding_pairs = []
         self.embeddings = {}
         self.embeddings_classes = {}
         self.n_classes = {}
-        self.embedding_dir = embedding_dir
+        self.embedding_path = embedding_path
         self.embedding_classe_file = embedding_class_file
         self.load_embedding()
         self.load_classes()
@@ -29,9 +30,9 @@ class RcsbEmbeddingDataset:
         super().__init__()
 
     def load_embedding(self):
-        for file in os.listdir(self.embedding_dir):
+        for file in os.listdir(self.embedding_path):
             embedding_id = ".".join(file.split(".")[0:-2])
-            v = np.array(list(pd.read_csv(f"{self.embedding_dir}/{file}").iloc[:, 0].values))
+            v = np.array(list(pd.read_csv(f"{self.embedding_path}/{file}").iloc[:, 0].values))
             self.embeddings[embedding_id] = v
 
     def load_classes(self):
@@ -87,9 +88,14 @@ class RcsbEmbeddingDataset:
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--embedding_path', type=str, required=True)
+    parser.add_argument('--embedding_class_file', type=str, required=True)
+    args = parser.parse_args()
+
     dataloader = RcsbEmbeddingDataset(
-        embedding_dir="/Users/joan/data/structure-embedding/pst_t30_so/ecod/embedding",
-        embedding_class_file="/Users/joan/devel/nn-biozernike/nn-biozernike/resources/ecod.tsv"
+        embedding_path=args.embedding_path,
+        embedding_class_file=args.embedding_class_file
     )
     y_pred = []
     y_true = []

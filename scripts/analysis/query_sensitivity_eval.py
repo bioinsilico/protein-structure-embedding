@@ -1,7 +1,8 @@
 import argparse
 from operator import itemgetter
 
-from numpy import dot
+from numpy import dot, linspace, mean
+import matplotlib.pyplot as plt
 
 from scripts.analysis.analysis_dataset import AnalysisDataset
 
@@ -42,5 +43,24 @@ if __name__ == '__main__':
         if args.verbose:
             print(dom_i, class_i, "SEN", sen, sort_score[0:5])
 
-    ones = [x for x in sen_values if x == 1.]
-    print(len(ones), len(sen_values))
+    sen_values = sorted(sen_values)
+    sen_values.reverse()
+
+    fraction_queries = linspace(0, 1, len(sen_values))
+    avg_sensitivity = [mean(sen_values[:i+1]) for i in range(len(sen_values))]
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(fraction_queries, avg_sensitivity, marker='o')
+    plt.xlabel('Fraction of Queries')
+    plt.ylabel('Average Sensitivity')
+    plt.title('Average Sensitivity vs Fraction of Queries')
+    plt.grid(True)
+    plt.show()
+
+    plt.figure(figsize=(8, 6))
+    plt.hist(sen_values, bins=10, alpha=0.5, color='green')
+    plt.xlabel('Sensitivity Values')
+    plt.ylabel('Frequency')
+    plt.title('Sensitivity Value Histogram')
+    plt.grid(True)
+    plt.show()

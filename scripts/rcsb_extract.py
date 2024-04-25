@@ -10,9 +10,9 @@ from torch_geometric.loader import DataLoader
 from torch_geometric.utils import unbatch
 
 from pst.esm2 import PST
-from scripts.rcsb_dataset import RcsbDataset
+from scripts.rcsb_datasets.rcsb_dataset import RcsbDataset
 
-from scripts.rcsb_embedding_model import RcsbEmbeddingModel
+from scripts.models.rcsb_embedding_model import RcsbEmbeddingModel
 
 
 def parse_args():

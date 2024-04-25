@@ -4,8 +4,8 @@ import torch
 
 from torch_geometric.loader import DataLoader
 
-from scripts.rcsb_embedding_model import RcsbEmbeddingModel
-from scripts.rcsb_geo_dataset import RcsbGeoDataset
+from scripts.models.rcsb_embedding_model import RcsbEmbeddingModel
+from scripts.rcsb_datasets.rcsb_geo_dataset import RcsbGeoDataset
 
 
 def parse_args():

@@ -22,9 +22,11 @@ def get_angles(res_internal_coord):
 
 
 def c_alpha_dist(ri, rj):
-    one = ri["CA"].get_coord()
-    two = rj["CA"].get_coord()
-    return np.linalg.norm(one - two)
+    if "CA" in ri and "CA" in rj:
+        one = ri["CA"].get_coord()
+        two = rj["CA"].get_coord()
+        return np.linalg.norm(one - two)
+    return 3.8
 
 
 def get_distance(idx, residues):
@@ -85,17 +87,14 @@ class RcsbGeoDataset(Dataset):
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
             print(f"Processing file: {file}")
-            try:
-                for (ch, data) in self.get_geo_from_pdb_file(f"{self.instance_list}/{file}"):
-                    if data:
-                        if file.endswith(".pdb"):
-                            file = ".".join(file.split(".")[0:-1])
-                        torch.save(
-                            torch.from_numpy(np.array(data)),
-                            os.path.join(self.geo_dir, f"{file}.{ch}.pt")
-                        )
-            except:
-                print(f"File {file} failed")
+            for (ch, data) in self.get_geo_from_pdb_file(f"{self.instance_list}/{file}"):
+                if data:
+                    if file.endswith(".pdb"):
+                        file = file.split(".")[0]
+                    torch.save(
+                        torch.from_numpy(np.array(data)),
+                        os.path.join(self.geo_dir, f"{file}.pt")
+                    )
 
     def load_instances(self):
         embedding_list = set(
@@ -130,7 +129,7 @@ class RcsbGeoDataset(Dataset):
             distances = [get_distance(idx, residues) for idx, res in enumerate(residues)]
             if len(angles) != len(distances):
                 raise Exception("CA number missmatch")
-            geos.append((ch.id, [(a, b, c, x, y) for (a, b, c), (x, y) in list(zip(angles, distances))]))
+            geos.append((ch.id, [(a, b, c, x, y) * 16 for (a, b, c), (x, y) in list(zip(angles, distances))]))
         return geos
 
     def get_chain_graph(self, ca: list, sequence: str):

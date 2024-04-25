@@ -60,15 +60,18 @@ class RcsbDataset(Dataset):
 
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
+            entry_id = file.split(".")[0]
+            if entry_id in self.ready_entries:
+                continue
             print(f"Processing file: {file}")
-            try:
-                for (ch, data) in self.get_graph_from_pdb_file(f"{self.instance_list}/{file}"):
-                    if data:
-                        if file.endswith(".pdb"):
-                            file = ".".join(file.split(".")[0:-1])
-                        torch.save(data, os.path.join(self.graph_dir, f"{file}.{ch}.pt"))
-            except:
-                print(f"File {file} failed")
+            for (ch, data) in self.get_graph_from_pdb_file(f"{self.instance_list}/{file}"):
+                if data:
+                    if file.endswith(".pdb"):
+                        file = ".".join(file.split(".")[0:-1])
+                    tensor_file = os.path.join(self.graph_dir, f"{file}.{ch}.pt")
+                    if os.path.isfile(tensor_file):
+                        raise Exception(f"File {tensor_file} exists")
+                    torch.save(data, tensor_file)
 
     def load_instances(self):
         embedding_list = set(
@@ -100,7 +103,10 @@ class RcsbDataset(Dataset):
         for ch in chains:
             ca_atoms = [atom for atom in structure.get_atoms() if
                         atom.get_name() == "CA" and is_aa(atom.parent.resname) and atom.parent.parent.id == ch]
-            ca = [atom.get_coords() for atom in ca_atoms]
+            if len(ca_atoms) == 0:
+                continue
+            ca = [atom.get_coord() for atom in ca_atoms]
+            # sequence = "".join(["X" for c in ca_atoms])
             sequence = "".join([protein_letters_3to1_extended[c.parent.resname] for c in ca_atoms])
             graphs.append((ch, self.get_chain_graph(ca, sequence)))
         return graphs

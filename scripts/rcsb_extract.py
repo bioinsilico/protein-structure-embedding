@@ -114,7 +114,7 @@ def main():
         device=cfg.device
     ) if cfg.embedding_model_path else None
 
-    print("DataLoader ready")
+    print(f"DataLoader {len(data_loader)} ready")
     if not model:
         print("No residue level model provided exiting")
         exit(0)
@@ -126,7 +126,7 @@ def main():
         out, batch = out[data.idx_mask], data.batch[data.idx_mask]
         protein_repr_batches = list(unbatch(out, batch))
         if len(protein_repr_batches) == 0:
-            continue
+            raise Exception(f"zero batch size error {data}")
         if embedding_model:
             for idx, protein_repr in enumerate(protein_repr_batches):
                 n = cfg.batch_size * batch_idx + idx

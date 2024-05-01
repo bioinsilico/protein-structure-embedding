@@ -68,7 +68,7 @@ class RcsbDataset(Dataset):
                 if data:
                     if file.endswith(".pdb"):
                         file = ".".join(file.split(".")[0:-1])
-                    tensor_file = os.path.join(self.graph_dir, f"{file}.{ch}.pt")
+                    tensor_file = os.path.join(self.graph_dir, f"{file}.{ch if ch!=' ' else '0'}.pt")
                     if os.path.isfile(tensor_file):
                         raise Exception(f"File {tensor_file} exists")
                     torch.save(data, tensor_file)

@@ -49,14 +49,10 @@ class RcsbDataset(Dataset):
             entry_id = row.strip()
             if entry_id in self.ready_entries:
                 continue
-
             print(f"Processing entry: {entry_id}")
-            try:
-                for (ch, data) in self.get_graph_from_entry_id(entry_id):
-                    if data:
-                        torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.{ch}.pt"))
-            except:
-                print(f"Entry {entry_id} failed")
+            for (ch, data) in self.get_graph_from_entry_id(entry_id):
+                if data:
+                    torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.{ch}.pt"))
 
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):

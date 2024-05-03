@@ -24,7 +24,9 @@ class AnalysisDataset:
         for file in os.listdir(self.embedding_path):
             embedding_id = ".".join(file.split(".")[0:-2])
             v = np.array(list(pd.read_csv(f"{self.embedding_path}/{file}").iloc[:, 0].values))
-            v = v / np.linalg.norm(v)
+            norm = np.linalg.norm(v)
+            if norm > 0:
+                v = v / norm
             self.embeddings[embedding_id] = v
 
     def load_classes(self):

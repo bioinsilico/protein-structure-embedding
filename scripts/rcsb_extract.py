@@ -107,9 +107,9 @@ def main():
     embedding_model = RcsbEmbeddingModel(
         model_path=cfg.embedding_model_path,
         input_features=640,
-        dim_feedforward=2048,
+        dim_feedforward=1280,
         hidden_layer=640,
-        nhead=8,
+        nhead=10,
         num_layers=6,
         device=cfg.device
     ) if cfg.embedding_model_path else None

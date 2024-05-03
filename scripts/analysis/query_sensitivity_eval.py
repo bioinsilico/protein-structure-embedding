@@ -4,7 +4,7 @@ from operator import itemgetter
 from numpy import dot, linspace, mean
 import matplotlib.pyplot as plt
 
-from scripts.analysis.analysis_dataset import AnalysisDataset
+from scripts.analysis.analysis_dataset import AnalysisDataset, get_class, Depth
 
 
 def fold_fp(c, c_anchor):
@@ -24,7 +24,8 @@ if __name__ == '__main__':
 
     dataloader = AnalysisDataset(
         embedding_path=args.embedding_path,
-        embedding_class_file=args.embedding_class_file
+        embedding_class_file=args.embedding_class_file,
+        embedding_class_extractor=get_class(Depth.scop_family)
     )
     sen_values = []
     for dom_i, embedding_i in dataloader.domains():

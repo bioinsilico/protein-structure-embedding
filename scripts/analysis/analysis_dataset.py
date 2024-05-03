@@ -3,11 +3,25 @@ import pandas as pd
 import numpy as np
 
 
+def get_class(depth):
+    def __get_class(class_id):
+        return ".".join(class_id.split(".")[0:depth])
+    return __get_class
+
+
+class Depth:
+    scop_class = 1
+    scop_fold = 2
+    scop_super_family = 3
+    scop_family = 4
+
+
 class AnalysisDataset:
     def __init__(
             self,
             embedding_path,
-            embedding_class_file
+            embedding_class_file,
+            embedding_class_extractor=get_class(Depth.scop_family)
     ):
         self.embedding_pairs = []
         self.embeddings = {}
@@ -15,6 +29,7 @@ class AnalysisDataset:
         self.n_classes = {}
         self.embedding_path = embedding_path
         self.embedding_classe_file = embedding_class_file
+        self.embedding_class_extractor = embedding_class_extractor
         self.load_embedding()
         self.load_classes()
         self.load_embedding_pairs()
@@ -32,7 +47,7 @@ class AnalysisDataset:
     def load_classes(self):
         for row in open(self.embedding_classe_file):
             embedding_id = row.strip().split("\t")[0]
-            embedding_class = row.strip().split("\t")[1]
+            embedding_class = self.embedding_class_extractor(row.strip().split("\t")[1])
             self.embeddings_classes[embedding_id] = embedding_class
             if embedding_class in self.n_classes:
                 self.n_classes[embedding_class] += 1

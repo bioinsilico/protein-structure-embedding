@@ -73,7 +73,7 @@ class RcsbDataset(Dataset):
             [".".join(r.split(".")[0:-1]) for r in os.listdir(self.embedding_dir)] if self.embedding_dir else []
         )
         graph_files = [f"{self.graph_dir}/{r}" for r in os.listdir(self.graph_dir)]
-        graph_files = [".".join(r.split("/")[-1].split(".")[0:-1]) for r in sorted(graph_files, key=os.path.getsize)]
+        graph_files = [".".join(r.split("/")[-1].split(".")[0:-1]) for r in graph_files]
         for file in graph_files:
             if f"{file}" not in embedding_list:
                 self.instances.append(f"{file}")

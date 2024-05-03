@@ -5,9 +5,8 @@ import torch
 import esm
 import torch_geometric.nn as gnn
 from torch_geometric.data import Data, Dataset
-from Bio.PDB import PDBParser
-from Bio.PDB.Polypeptide import is_aa
-from Bio.Data.PDBData import protein_letters_3to1_extended
+
+from scripts.utils.biopython_getter import get_coords_for_pdb_file
 from scripts.utils.coords_getter import get_coords_for_pdb_id
 
 
@@ -83,28 +82,16 @@ class RcsbDataset(Dataset):
 
     def get_graph_from_entry_id(self, pdb):
         cas, seqs = get_coords_for_pdb_id(pdb)
+        return self.get_graphs(cas, seqs)
+
+    def get_graph_from_pdb_file(self, pdb_file):
+        cas, seqs = get_coords_for_pdb_file(pdb_file)
+        return self.get_graphs(cas, seqs)
+
+    def get_graphs(self, cas, seqs):
         graphs = []
         for ch in cas.keys():
             graphs.append((ch, self.get_chain_graph(cas[ch], seqs[ch])))
-        return graphs
-
-    def get_graph_from_pdb_file(self, pdb_file):
-        parser = PDBParser()
-        structure = parser.get_structure("structure", pdb_file)
-        return self.get_graph_from_structure(structure[0])
-
-    def get_graph_from_structure(self, structure):
-        chains = [s.id for s in structure.get_chains()]
-        graphs = []
-        for ch in chains:
-            ca_atoms = [atom for atom in structure.get_atoms() if
-                        atom.get_name() == "CA" and is_aa(atom.parent.resname) and atom.parent.parent.id == ch]
-            if len(ca_atoms) == 0:
-                continue
-            ca = [atom.get_coord() for atom in ca_atoms]
-            # sequence = "".join(["X" for c in ca_atoms])
-            sequence = "".join([protein_letters_3to1_extended[c.parent.resname] for c in ca_atoms])
-            graphs.append((ch, self.get_chain_graph(ca, sequence)))
         return graphs
 
     def get_chain_graph(self, ca: list, sequence: str):

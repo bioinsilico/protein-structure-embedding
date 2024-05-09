@@ -31,5 +31,6 @@ class RcsbEmbeddingModel:
         self.model = lit_model.model
         self.model.eval()
 
-    def embedding(self, x):
-        return self.model.embedding(self.model.transformer(x).mean(dim=0))
+    def embedding(self, x, x_mask):
+        with torch.inference_mode():
+            return self.model.embedding(self.model.transformer(x, src_key_padding_mask=x_mask).mean(dim=1))

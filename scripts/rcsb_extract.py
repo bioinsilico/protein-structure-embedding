@@ -1,4 +1,5 @@
 import argparse
+import os.path
 import time
 
 import pandas as pd
@@ -13,6 +14,7 @@ from pst.esm2 import PST
 from scripts.rcsb_datasets.rcsb_dataset import RcsbDataset
 
 from scripts.models.rcsb_embedding_model import RcsbEmbeddingModel
+from scripts.utils.batch_utils import collate_seq_embeddings
 
 
 def parse_args():
@@ -98,7 +100,7 @@ def main():
         embedding_dir=f"{cfg.out_dir}/embedding"
     )
 
-    data_loader = DataLoader(
+    dataloader = DataLoader(
         dataset,
         batch_size=cfg.batch_size,
         shuffle=False,
@@ -114,34 +116,36 @@ def main():
         device=cfg.device
     ) if cfg.embedding_model_path else None
 
-    print(f"DataLoader {len(data_loader)} ready")
+    print(f"DataLoader ready (len {len(dataloader)})")
     if not model:
         print("No residue level model provided exiting")
         exit(0)
 
-    for batch_idx, data in enumerate(data_loader):
+    for data, ch_name_list in dataloader:
         start = time.process_time()
         data = data.to(cfg.device)
         out = model(data, return_repr=True, aggr=cfg.aggr)
         out, batch = out[data.idx_mask], data.batch[data.idx_mask]
-        protein_repr_batches = list(unbatch(out, batch))
+        protein_repr_batches = unbatch(out, batch)
         if len(protein_repr_batches) == 0:
             raise Exception(f"zero batch size error {data}")
         if embedding_model:
-            for idx, protein_repr in enumerate(protein_repr_batches):
-                n = cfg.batch_size * batch_idx + idx
-                print(f"Representation of: {dataset.get_instance(n)}")
-                x = embedding_model.embedding(protein_repr)
-                pd.DataFrame(x.to('cpu').numpy()).to_csv(
-                    f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.csv",
+            protein_repr, protein_mask = collate_seq_embeddings(protein_repr_batches)
+            chain_repr_batches = embedding_model.embedding(protein_repr, protein_mask)
+            for ch_idx, ch_repr in enumerate(chain_repr_batches):
+                file_name = f"{cfg.out_dir}/embedding/{ch_name_list[ch_idx]}.csv"
+                if os.path.ismount(file_name):
+                    raise Exception(f"File {file_name} exists")
+                print(f"Saved chain representation of {ch_name_list[ch_idx]}")
+                pd.DataFrame(ch_repr.to('cpu').numpy()).to_csv(
+                    file_name,
                     header=False,
                     index=False
                 )
         else:
-            for idx, protein_repr in enumerate(protein_repr_batches):
-                n = cfg.batch_size * batch_idx + idx
-                print(f"Representation of: {dataset.get_instance(n)}")
-                torch.save(protein_repr, f"{cfg.out_dir}/embedding/{dataset.get_instance(n)}.pt")
+            for protein_idx, protein_repr in enumerate(protein_repr_batches):
+                print(f"Saved residue representation of {ch_name_list[protein_idx]}")
+                torch.save(protein_repr, f"{cfg.out_dir}/embedding/{ch_name_list[protein_idx]}.pt")
         end = time.process_time()
         print(f"Total time {end - start}")
 

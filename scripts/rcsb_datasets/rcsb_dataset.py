@@ -114,12 +114,9 @@ class RcsbDataset(Dataset):
         idx_mask[1:-1] = True
         return Data(x=x, edge_index=edge_index, idx_mask=idx_mask)
 
-    def get_instance(self, idx):
-        return self.instances[idx]
-
     def len(self):
         return len(self.instances)
 
     def get(self, idx):
         data = torch.load(os.path.join(self.graph_dir, f"{self.instances[idx]}.pt"))
-        return data
+        return data, self.instances[idx]

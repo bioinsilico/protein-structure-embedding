@@ -20,6 +20,7 @@ if __name__ == '__main__':
     parser.add_argument('--embedding_path', type=str, required=True)
     parser.add_argument('--embedding_class_file', type=str, required=True)
     parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--threshold', type=float)
     args = parser.parse_args()
 
     dataloader = AnalysisDataset(
@@ -42,6 +43,8 @@ if __name__ == '__main__':
         sen = len(tp) / n_classes
         sen_values.append(sen)
         if args.verbose:
+            print(dom_i, class_i, "SEN", sen, sort_score[0:5])
+        elif args.threshold and sen <= args.threshold:
             print(dom_i, class_i, "SEN", sen, sort_score[0:5])
 
     sen_values = sorted(sen_values)

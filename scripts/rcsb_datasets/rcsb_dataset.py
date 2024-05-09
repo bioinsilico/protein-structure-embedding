@@ -40,8 +40,10 @@ class RcsbDataset(Dataset):
     def load_list(self):
         if os.path.isfile(self.instance_list):
             self.load_list_file()
-        if os.path.isdir(self.instance_list):
+        elif os.path.isdir(self.instance_list):
             self.load_list_dir()
+        else:
+            raise Exception("--instance_list must be a valid file or directory")
 
     def load_list_file(self):
         for row in (open(self.instance_list)):

@@ -145,7 +145,7 @@ def main():
         else:
             for protein_idx, protein_repr in enumerate(protein_repr_batches):
                 print(f"Saved residue representation of {ch_name_list[protein_idx]}")
-                torch.save(protein_repr, f"{cfg.out_dir}/embedding/{ch_name_list[protein_idx]}.pt")
+                torch.save(protein_repr.clone(), f"{cfg.out_dir}/embedding/{ch_name_list[protein_idx]}.pt")
         end = time.process_time()
         print(f"Total time {end - start}")
 

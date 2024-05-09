@@ -61,7 +61,7 @@ class RcsbDataset(Dataset):
             print(f"Processing file: {file}")
             for (ch, data) in self.get_graph_from_pdb_file(f"{self.instance_list}/{file}"):
                 if data:
-                    if file.endswith(".pdb"):
+                    if file.endswith(".pdb") or file.endswith(".ent"):
                         file = ".".join(file.split(".")[0:-1])
                     tensor_file = os.path.join(self.graph_dir, f"{file}.{ch if ch!=' ' else '0'}.pt")
                     if os.path.isfile(tensor_file):

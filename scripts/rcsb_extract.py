@@ -14,7 +14,7 @@ from pst.esm2 import PST
 from scripts.rcsb_datasets.rcsb_dataset import RcsbDataset
 
 from scripts.models.rcsb_embedding_model import RcsbEmbeddingModel
-from scripts.utils.batch_utils import collate_seq_embeddings
+from scripts.utils.batch_utils import seq_embeddings_collator
 
 
 def parse_args():
@@ -115,6 +115,8 @@ def main():
         num_layers=6,
         device=cfg.device
     ) if cfg.embedding_model_path else None
+
+    collate_seq_embeddings = seq_embeddings_collator(cfg.device)
 
     print(f"DataLoader ready (len {len(dataloader)})")
     if not model:

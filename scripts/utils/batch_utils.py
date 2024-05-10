@@ -25,6 +25,6 @@ def seq_embeddings_collator(device):
             mask_sample[:len(sample)] = torch.zeros([len(sample)])
             mask_batch.append(mask_sample.bool())
 
-        return torch.stack(padded_batch, dim=0), torch.stack(mask_batch, dim=0).to(device)
+        return torch.stack(padded_batch, dim=0).to(device), torch.stack(mask_batch, dim=0).to(device)
 
     return __collate_seq_embeddings

@@ -37,7 +37,7 @@ class AnalysisDataset:
 
     def load_embedding(self):
         for file in os.listdir(self.embedding_path):
-            embedding_id = ".".join(file.split(".")[0:-2])
+            embedding_id = ".".join(file.split(".")[0:-1])
             v = np.array(list(pd.read_csv(f"{self.embedding_path}/{file}").iloc[:, 0].values))
             norm = np.linalg.norm(v)
             if norm > 0:
@@ -98,6 +98,8 @@ class AnalysisDataset:
             yield embedding_id, self.embeddings[embedding_id]
 
     def get_class(self, dom):
+        if dom not in self.embeddings_classes:
+            raise Exception(f"Undefined class for domain: {dom}")
         return self.embeddings_classes[dom]
 
     def get_n_classes(self, name):

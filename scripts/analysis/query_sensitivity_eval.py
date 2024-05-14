@@ -46,6 +46,13 @@ if __name__ == '__main__':
             print(dom_i, class_i, "SEN", sen, sort_score[0:5])
         elif args.threshold and sen <= args.threshold:
             print(dom_i, class_i, "SEN", sen, sort_score[0:5])
+            pos_found = 0
+            # for (dom_j, class_j, score) in sort_score:
+            #     if class_j == class_i:
+            #         pos_found +=1
+            #     print(f"{dom_i},{dom_j},{1. if class_j == class_i else 0.}")
+            #     if pos_found == n_classes:
+            #         break
 
     sen_values = sorted(sen_values)
     sen_values.reverse()

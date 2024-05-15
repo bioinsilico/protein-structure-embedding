@@ -1,6 +1,7 @@
 from Bio.PDB import PDBParser
 from Bio.Data.PDBData import protein_letters_3to1_extended
 from Bio.PDB.Polypeptide import is_aa
+from collections import OrderedDict
 
 
 def get_coords_for_pdb_file(pdb_file):
@@ -11,8 +12,8 @@ def get_coords_for_pdb_file(pdb_file):
 
 def __get_graph_from_structure(structure):
     chains = [s.id for s in structure.get_chains()]
-    ca_map = {}
-    seq_map = {}
+    ca_map = OrderedDict()
+    seq_map = OrderedDict()
     for ch in chains:
         ca_atoms = [atom for atom in structure.get_atoms() if
                     atom.get_name() == "CA" and is_aa(atom.parent.resname) and atom.parent.parent.id == ch]

@@ -1,4 +1,5 @@
 import os
+import itertools
 
 import numpy as np
 import torch
@@ -18,7 +19,8 @@ class RcsbDataset(Dataset):
             embedding_dir=None,
             eps=8.0,
             esm_alphabet=esm.data.Alphabet.from_architecture("ESM-1b"),
-            num_workers=0
+            num_workers=0,
+            granularity="chain"
     ):
         self.instance_list = instance_list
         self.graph_dir = graph_dir
@@ -26,6 +28,7 @@ class RcsbDataset(Dataset):
         self.eps = eps
         self.esm_alphabet = esm_alphabet
         self.num_workers = num_workers
+        self.granularity = "chain" if granularity != "entry" else "entry"
         self.instances = []
         self.ready_entries = set({})
         self.ready_list()
@@ -52,8 +55,12 @@ class RcsbDataset(Dataset):
                 continue
             print(f"Processing entry: {entry_id}")
             for (ch, data) in self.get_graph_from_entry_id(entry_id):
-                if data:
+                if ch and data:
                     torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.{ch}.pt"))
+                elif data:
+                    torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.pt"))
+                else:
+                    raise Exception(f"Graph data is null for {entry_id}")
 
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
@@ -62,13 +69,17 @@ class RcsbDataset(Dataset):
                 continue
             print(f"Processing file: {file}")
             for (ch, data) in self.get_graph_from_pdb_file(f"{self.instance_list}/{file}"):
-                if data:
-                    if file.endswith(".pdb") or file.endswith(".ent"):
-                        file = ".".join(file.split(".")[0:-1])
-                    tensor_file = os.path.join(self.graph_dir, f"{file}.{ch if ch!=' ' else '0'}.pt")
-                    if os.path.isfile(tensor_file):
-                        raise Exception(f"File {tensor_file} exists")
+                if file.endswith(".pdb") or file.endswith(".ent"):
+                    file = ".".join(file.split(".")[0:-1])
+                tensor_file = os.path.join(self.graph_dir, f"{file}.{ch if ch != ' ' else '0'}.pt")
+                if os.path.isfile(tensor_file):
+                    raise Exception(f"File {tensor_file} exists")
+                if ch and data:
                     torch.save(data, tensor_file)
+                elif data:
+                    torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.pt"))
+                else:
+                    raise Exception(f"Graph data is null for {entry_id}")
 
     def load_instances(self):
         embedding_list = set(
@@ -84,13 +95,25 @@ class RcsbDataset(Dataset):
 
     def get_graph_from_entry_id(self, pdb):
         cas, seqs = get_coords_for_pdb_id(pdb)
-        return self.get_graphs(cas, seqs)
+        return self.get_graph_from_cas_adn_seqs(cas, seqs)
 
     def get_graph_from_pdb_file(self, pdb_file):
         cas, seqs = get_coords_for_pdb_file(pdb_file)
-        return self.get_graphs(cas, seqs)
+        return self.get_graph_from_cas_adn_seqs(cas, seqs)
 
-    def get_graphs(self, cas, seqs):
+    def get_graph_from_cas_adn_seqs(self, cas, seqs):
+        if self.granularity == "chain":
+            return self.get_multiple_graphs(cas, seqs)
+        elif self.granularity == "entry":
+            return self.get_single_graph(cas, seqs)
+
+    def get_single_graph(self, cas, seqs):
+        return [(None, self.get_chain_graph(
+            list(itertools.chain.from_iterable(cas.values())),
+            "".join(seqs.values())
+        ))]
+
+    def get_multiple_graphs(self, cas, seqs):
         graphs = []
         for ch in cas.keys():
             graphs.append((ch, self.get_chain_graph(cas[ch], seqs[ch])))

@@ -1,4 +1,5 @@
 import time
+from collections import OrderedDict
 
 from Bio.Data.PDBData import protein_letters_3to1_extended
 from Bio.PDB.Polypeptide import is_aa
@@ -23,8 +24,8 @@ def get_poly_entities(data_container) -> set:
 def get_ca_coords(data_container, poly_ent_ids: set):
     atom_sites = data_container.getObj('atom_site')
     coords_current_chain = []
-    polychains_coords = {}
-    polychains_seqs = {}
+    polychains_coords = OrderedDict()
+    polychains_seqs = OrderedDict()
     current_seq = []
     asym_id = None
     for i in range(0, len(atom_sites.data)):

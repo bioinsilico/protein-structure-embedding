@@ -29,6 +29,7 @@ class RcsbDataset(Dataset):
         self.esm_alphabet = esm_alphabet
         self.num_workers = num_workers
         self.granularity = "chain" if granularity != "entry" else "entry"
+        self.entries = set({})
         self.instances = []
         self.ready_entries = set({})
         self.ready_list()
@@ -51,6 +52,7 @@ class RcsbDataset(Dataset):
     def load_list_file(self):
         for row in (open(self.instance_list)):
             entry_id = row.strip()
+            self.entries.add(entry_id)
             if entry_id in self.ready_entries:
                 continue
             print(f"Processing entry: {entry_id}")
@@ -65,19 +67,21 @@ class RcsbDataset(Dataset):
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
             entry_id = file.split(".")[0]
+            self.entries.add(entry_id)
             if entry_id in self.ready_entries:
                 continue
             print(f"Processing file: {file}")
             for (ch, data) in self.get_graph_from_pdb_file(f"{self.instance_list}/{file}"):
                 if file.endswith(".pdb") or file.endswith(".ent"):
                     file = ".".join(file.split(".")[0:-1])
-                tensor_file = os.path.join(self.graph_dir, f"{file}.{ch if ch != ' ' else '0'}.pt")
+                if ch:
+                    tensor_file = os.path.join(self.graph_dir, f"{file}.{ch if ch != ' ' else '0'}.pt")
+                else:
+                    tensor_file = os.path.join(self.graph_dir, f"{entry_id}.pt")
                 if os.path.isfile(tensor_file):
                     raise Exception(f"File {tensor_file} exists")
-                if ch and data:
+                if data:
                     torch.save(data, tensor_file)
-                elif data:
-                    torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.pt"))
                 else:
                     raise Exception(f"Graph data is null for {entry_id}")
 
@@ -85,8 +89,9 @@ class RcsbDataset(Dataset):
         embedding_list = set(
             [".".join(r.split(".")[0:-1]) for r in os.listdir(self.embedding_dir)] if self.embedding_dir else []
         )
-        graph_files = [f"{self.graph_dir}/{r}" for r in os.listdir(self.graph_dir)]
-        graph_files = [".".join(r.split("/")[-1].split(".")[0:-1]) for r in graph_files]
+        graph_files = [
+            ".".join(r.split(".")[0:-1]) for r in os.listdir(self.graph_dir) if r.split(".")[0] in self.entries
+        ]
         for file in graph_files:
             if f"{file}" not in embedding_list:
                 self.instances.append(f"{file}")

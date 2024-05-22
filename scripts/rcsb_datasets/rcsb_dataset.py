@@ -11,6 +11,10 @@ from scripts.utils.biopython_getter import get_coords_for_pdb_file
 from scripts.utils.coords_getter import get_coords_for_pdb_id
 
 
+def file_name(file):
+    return os.path.splitext(file)[0]
+
+
 class RcsbDataset(Dataset):
     def __init__(
             self,
@@ -39,7 +43,7 @@ class RcsbDataset(Dataset):
 
     def ready_list(self):
         for file in os.listdir(self.graph_dir):
-            self.ready_entries.add(".".join(file.split(".")[0:-1]))
+            self.ready_entries.add(file_name(file))
 
     def load_list(self):
         if os.path.isfile(self.instance_list):
@@ -66,14 +70,14 @@ class RcsbDataset(Dataset):
 
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
-            entry_id = ".".join(file.split(".")[0:-1])
+            entry_id = file_name(file)
             self.entries.add(entry_id)
             if entry_id in self.ready_entries:
                 continue
             print(f"Processing file: {file}")
             for (ch, data) in self.get_graph_from_pdb_file(f"{self.instance_list}/{file}"):
                 if file.endswith(".pdb") or file.endswith(".ent"):
-                    file = ".".join(file.split(".")[0:-1])
+                    file = file_name(file)
                 if ch:
                     tensor_file = os.path.join(self.graph_dir, f"{file}.{ch if ch != ' ' else '0'}.pt")
                 else:
@@ -87,10 +91,10 @@ class RcsbDataset(Dataset):
 
     def load_instances(self):
         embedding_list = set(
-            [".".join(r.split(".")[0:-1]) for r in os.listdir(self.embedding_dir)] if self.embedding_dir else []
+            [file_name(file) for file in os.listdir(self.embedding_dir)] if self.embedding_dir else []
         )
         graph_files = [
-            ".".join(r.split(".")[0:-1]) for r in os.listdir(self.graph_dir) if r.split(".")[0] in self.entries
+            file_name(file) for file in os.listdir(self.graph_dir) if file_name(file) in self.entries
         ]
         for file in graph_files:
             if f"{file}" not in embedding_list:

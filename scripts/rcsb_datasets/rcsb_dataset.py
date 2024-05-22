@@ -66,7 +66,7 @@ class RcsbDataset(Dataset):
 
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
-            entry_id = file.split(".")[0]
+            entry_id = ".".join(file.split(".")[0:-1])
             self.entries.add(entry_id)
             if entry_id in self.ready_entries:
                 continue

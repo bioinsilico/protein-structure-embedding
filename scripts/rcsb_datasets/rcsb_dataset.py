@@ -24,7 +24,7 @@ class RcsbDataset(Dataset):
     ):
         self.instance_list = instance_list
         self.graph_dir = graph_dir
-        self.embedding_dir = embedding_dir if os.path.isdir(embedding_dir) else None
+        self.embedding_dir = embedding_dir if embedding_dir and os.path.isdir(embedding_dir) else None
         self.eps = eps
         self.esm_alphabet = esm_alphabet
         self.num_workers = num_workers

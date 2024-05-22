@@ -38,7 +38,6 @@ def parse_args():
     parser.add_argument(
         "--out_embedding_dir",
         type=str,
-        required=True,
         help="Path for the output embedding tensors",
     )
     parser.add_argument(

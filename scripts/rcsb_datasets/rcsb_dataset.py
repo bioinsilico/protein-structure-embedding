@@ -38,8 +38,8 @@ class RcsbDataset(Dataset):
         super().__init__()
 
     def ready_list(self):
-        for row in os.listdir(self.graph_dir):
-            self.ready_entries.add(row.split(".")[0])
+        for file in os.listdir(self.graph_dir):
+            self.ready_entries.add(".".join(file.split(".")[0:-1]))
 
     def load_list(self):
         if os.path.isfile(self.instance_list):

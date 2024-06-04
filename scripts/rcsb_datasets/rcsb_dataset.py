@@ -43,7 +43,7 @@ class RcsbDataset(Dataset):
 
     def ready_list(self):
         for file in os.listdir(self.graph_dir):
-            self.ready_entries.add(file_name(file))
+            self.ready_entries.add(file_name(file) if self.granularity == "entry" else file_name(file_name(file)))
 
     def load_list(self):
         if os.path.isfile(self.instance_list):
@@ -94,7 +94,7 @@ class RcsbDataset(Dataset):
             [file_name(file) for file in os.listdir(self.embedding_dir)] if self.embedding_dir else []
         )
         graph_files = [
-            file_name(file) for file in os.listdir(self.graph_dir) if file_name(file) in self.entries
+            file_name(file) for file in os.listdir(self.graph_dir)
         ]
         for file in graph_files:
             if f"{file}" not in embedding_list:

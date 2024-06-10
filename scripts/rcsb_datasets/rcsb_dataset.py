@@ -154,3 +154,10 @@ class RcsbDataset(Dataset):
     def get(self, idx):
         data = torch.load(os.path.join(self.graph_dir, f"{self.instances[idx]}.pt"))
         return data, self.instances[idx]
+
+if __name__ == "__main__":
+    dataset = RcsbDataset(
+        "/Users/joan/data/structure-embedding/rcsb/csm-list-test.tsv",
+        "/Users/joan/data/structure-embedding/rcsb/graph-csm"
+    )
+    print(len(dataset))

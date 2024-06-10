@@ -94,13 +94,20 @@ class RcsbDataset(Dataset):
             [file_name(file) for file in os.listdir(self.embedding_dir)] if self.embedding_dir else []
         )
         graph_files = [
-            file_name(file) for file in os.listdir(self.graph_dir)
+            file_name(file) for file in os.listdir(self.graph_dir) if self.check_file(file)
         ]
         for file in graph_files:
             if f"{file}" not in embedding_list:
                 self.instances.append(f"{file}")
             else:
                 print(f"Embedding {file} is ready")
+
+    def check_file(self, file):
+        if self.granularity == "chain" and file_name(file_name(file)) in self.entries:
+            return True
+        if self.granularity == "entry" and file_name(file) in self.entries:
+            return True
+        return False
 
     def get_graph_from_entry_id(self, pdb):
         cas, seqs = get_coords_for_pdb_id(pdb)

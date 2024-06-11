@@ -1,7 +1,7 @@
 import argparse
 from operator import itemgetter
 
-from numpy import dot, linspace, mean
+from numpy import dot, linspace
 import matplotlib.pyplot as plt
 
 from scripts.analysis.analysis_dataset import AnalysisDataset, get_class, Depth
@@ -58,11 +58,11 @@ if __name__ == '__main__':
     sen_values.reverse()
 
     fraction_queries = linspace(0, 1, len(sen_values))
-    avg_sensitivity = [mean(sen_values[:i+1]) for i in range(len(sen_values))]
+    fraction_sensitivity = [sen_values[i] for i in range(len(sen_values))]
 
     plt.figure(figsize=(8, 6))
     plt.ylim(0, 1.1)
-    plt.plot(fraction_queries, avg_sensitivity, marker='o')
+    plt.plot(fraction_queries, fraction_sensitivity, marker='o')
     plt.xlabel('Fraction of Queries')
     plt.ylabel('Average Sensitivity')
     plt.title('Average Sensitivity vs Fraction of Queries')

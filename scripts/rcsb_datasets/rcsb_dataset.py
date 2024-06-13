@@ -46,7 +46,10 @@ class RcsbDataset(Dataset):
     def ready_list(self):
         for file in os.listdir(self.graph_dir):
             self.ready_entries.add(file_name(file) if self.granularity == "entry" else file_name(file_name(file)))
-        print(f"Found {len(self.ready_entries)} ready entries in {self.graph_dir}")
+        print(
+            f"Found {len(self.ready_entries)} ready entries in {self.graph_dir}" +
+            f": {self.ready_entries[0]}, ..." if len(self.ready_entries) > 0 else ""
+        )
 
     def load_list(self):
         if os.path.isfile(self.instance_list):

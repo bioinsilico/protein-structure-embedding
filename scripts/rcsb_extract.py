@@ -75,6 +75,13 @@ def parse_args():
         help="If the protein file/entry contains multiple proteins, process single chains or all combined. "
              "Possible values: \"entry\" or \"chain\""
     )
+    parser.add_argument(
+        "--list-type",
+        type=str,
+        default="entry_id",
+        help="If the provided list contains entry or assembly Ids. "
+             "Possible values: \"entry_id\" or \"assembly_id\""
+    )
     cfg = parser.parse_args()
     cfg.device = "cuda" if torch.cuda.is_available() else "cpu"
     return cfg
@@ -108,6 +115,7 @@ def main():
 
     dataset = RcsbDataset(
         instance_list=cfg.instance_list,
+        list_type=cfg.list_type,
         graph_dir=cfg.graph_dir,
         embedding_dir=cfg.out_embedding_dir,
         granularity=cfg.granularity

@@ -8,7 +8,7 @@ import torch_geometric.nn as gnn
 from torch_geometric.data import Data, Dataset
 
 from scripts.utils.biopython_getter import get_coords_for_pdb_file
-from scripts.utils.coords_getter import get_coords_for_pdb_id
+from scripts.utils.coords_getter import get_coords_for_pdb_id, get_coords_for_assembly_id
 
 
 def file_name(file):
@@ -24,9 +24,11 @@ class RcsbDataset(Dataset):
             eps=8.0,
             esm_alphabet=esm.data.Alphabet.from_architecture("ESM-1b"),
             num_workers=0,
-            granularity="chain"
+            granularity="chain",
+            list_type="entry_id"
     ):
         self.instance_list = instance_list
+        self.list_type = "entry_id" if list_type != "assembly_id" else "assembly_id"
         self.graph_dir = graph_dir
         self.embedding_dir = embedding_dir if embedding_dir and os.path.isdir(embedding_dir) else None
         self.eps = eps
@@ -54,13 +56,14 @@ class RcsbDataset(Dataset):
             raise Exception("--instance_list must be a valid file or directory")
 
     def load_list_file(self):
+        getter = self.get_graph_from_entry_id if self.list_type == "entry_id" else self.get_graph_from_assembly_id
         for row in (open(self.instance_list)):
             entry_id = row.strip()
             self.entries.add(entry_id)
             if entry_id in self.ready_entries:
                 continue
             print(f"Processing entry: {entry_id}")
-            for (ch, data) in self.get_graph_from_entry_id(entry_id):
+            for (ch, data) in getter(entry_id):
                 if ch and data:
                     torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.{ch}.pt"))
                 elif data:
@@ -111,6 +114,11 @@ class RcsbDataset(Dataset):
 
     def get_graph_from_entry_id(self, pdb):
         cas, seqs = get_coords_for_pdb_id(pdb)
+        return self.get_graph_from_cas_adn_seqs(cas, seqs)
+
+    def get_graph_from_assembly_id(self, pdb_assembly_id):
+        [entry_id, assembly_id] = pdb_assembly_id.split("-")
+        cas, seqs = get_coords_for_assembly_id(entry_id, assembly_id)
         return self.get_graph_from_cas_adn_seqs(cas, seqs)
 
     def get_graph_from_pdb_file(self, pdb_file):

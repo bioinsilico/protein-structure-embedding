@@ -25,7 +25,8 @@ class RcsbDataset(Dataset):
             esm_alphabet=esm.data.Alphabet.from_architecture("ESM-1b"),
             num_workers=0,
             granularity="chain",
-            list_type="entry_id"
+            list_type="entry_id",
+            fail_on_empty_graph=True
     ):
         self.instance_list = instance_list
         self.list_type = "entry_id" if list_type != "assembly_id" else "assembly_id"
@@ -35,6 +36,8 @@ class RcsbDataset(Dataset):
         self.esm_alphabet = esm_alphabet
         self.num_workers = num_workers
         self.granularity = "chain" if granularity != "entry" else "entry"
+        self.fail_on_empty_graph = fail_on_empty_graph
+
         self.entries = set({})
         self.instances = []
         self.ready_entries = set({})
@@ -73,7 +76,10 @@ class RcsbDataset(Dataset):
                 elif data:
                     torch.save(data, os.path.join(self.graph_dir, f"{entry_id}.pt"))
                 else:
-                    raise Exception(f"Graph data is null for {entry_id}")
+                    if self.fail_on_empty_graph:
+                        raise Exception(f"Graph data is null for {entry_id}")
+                    else:
+                        print(f"Graph data is null for {entry_id} and will be ignored")
 
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):

@@ -82,6 +82,12 @@ def parse_args():
         help="If the provided list contains entry or assembly Ids. "
              "Possible values: \"entry_id\" or \"assembly_id\""
     )
+    parser.add_argument(
+        "--fail-on-empty-graph",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Rise an exception if the resulting graph is empty"
+    )
     cfg = parser.parse_args()
     cfg.device = "cuda" if torch.cuda.is_available() else "cpu"
     return cfg
@@ -118,7 +124,8 @@ def main():
         list_type=cfg.list_type,
         graph_dir=cfg.graph_dir,
         embedding_dir=cfg.out_embedding_dir,
-        granularity=cfg.granularity
+        granularity=cfg.granularity,
+        fail_on_empty_graph=cfg.fail_on_empty_graph
     )
 
     dataloader = DataLoader(

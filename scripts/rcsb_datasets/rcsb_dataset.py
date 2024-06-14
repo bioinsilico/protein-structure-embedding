@@ -148,6 +148,8 @@ class RcsbDataset(Dataset):
         return graphs
 
     def get_chain_graph(self, ca: list, sequence: str):
+        if len(ca) == 0:
+            return None
         structure = torch.from_numpy(np.asarray(ca))
         edge_index = gnn.radius_graph(
             structure, r=self.eps, loop=False, num_workers=self.num_workers

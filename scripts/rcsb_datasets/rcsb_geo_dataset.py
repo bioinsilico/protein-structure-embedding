@@ -7,7 +7,13 @@ import esm
 import torch_geometric.nn as gnn
 from torch_geometric.data import Data, Dataset
 from Bio.PDB import PDBParser
+
+from scripts.rcsb_datasets.rcsb_dataset import file_name
 from scripts.utils.coords_getter import get_coords_for_pdb_id
+
+
+def get_coordinates(res):
+    res["CA"].get_coord()
 
 
 def get_angles(res_internal_coord):
@@ -21,12 +27,17 @@ def get_angles(res_internal_coord):
     )
 
 
+def distance_exp(d):
+    return math.exp(-(d-3.6)**2 / 12)
+
+
 def c_alpha_dist(ri, rj):
+    d = 3.8
     if "CA" in ri and "CA" in rj:
         one = ri["CA"].get_coord()
         two = rj["CA"].get_coord()
-        return np.linalg.norm(one - two)
-    return 3.8
+        d = np.linalg.norm(one - two)
+    return distance_exp(d)
 
 
 def get_distance(idx, residues):
@@ -37,6 +48,26 @@ def get_distance(idx, residues):
     if idx > 0:
         backward = c_alpha_dist(residues[idx - 1], residues[idx])
     return forward, backward
+
+
+def get_distance_pair(ri, rj):
+    if "CA" in ri and "CA" in rj:
+        one = ri["CA"].get_coord()
+        two = rj["CA"].get_coord()
+        return np.linalg.norm(one - two)
+    return 8.
+
+
+def get_contacts(residues):
+    map = []
+    for i, res_i in enumerate(residues):
+        for j, res_j in enumerate(residues):
+            if i == j:
+                continue
+            d = get_distance_pair(res_i, res_j)
+            if d < 8.:
+                map.append(([i, j], distance_exp(d)))
+    return map
 
 
 class RcsbGeoDataset(Dataset):
@@ -57,7 +88,6 @@ class RcsbGeoDataset(Dataset):
         self.ready_entries = set({})
         self.ready_list()
         self.load_list()
-        self.load_instances()
         super().__init__()
 
     def ready_list(self):
@@ -87,26 +117,14 @@ class RcsbGeoDataset(Dataset):
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
             print(f"Processing file: {file}")
-            for (ch, data) in self.get_geo_from_pdb_file(f"{self.instance_list}/{file}"):
+            for (ch, data) in self.get_geo_graph_from_pdb_file(f"{self.instance_list}/{file}"):
                 if data:
-                    if file.endswith(".pdb"):
-                        file = file.split(".")[0]
+                    if file.endswith(".pdb") or file.endswith(".ent"):
+                        file = file_name(file)
                     torch.save(
-                        torch.from_numpy(np.array(data)),
-                        os.path.join(self.geo_dir, f"{file}.pt")
+                        data,
+                        os.path.join(self.geo_dir, f"{file}.{ch}.pt")
                     )
-
-    def load_instances(self):
-        embedding_list = set(
-            [".".join(r.split(".")[0:-1]) for r in os.listdir(self.geo_dir)]
-        )
-        graph_files = [f"{self.geo_dir}/{r}" for r in os.listdir(self.geo_dir)]
-        graph_files = [".".join(r.split("/")[-1].split(".")[0:-1]) for r in sorted(graph_files, key=os.path.getsize)]
-        for file in graph_files:
-            if f"{file}" not in embedding_list:
-                self.instances.append(f"{file}")
-            else:
-                print(f"Embedding {file} is ready")
 
     def get_graph_from_entry_id(self, pdb):
         cas, seqs = get_coords_for_pdb_id(pdb)
@@ -115,7 +133,7 @@ class RcsbGeoDataset(Dataset):
             graphs.append((ch, self.get_chain_graph(cas[ch], seqs[ch])))
         return graphs
 
-    def get_geo_from_pdb_file(self, pdb_file):
+    def get_geo_graph_from_pdb_file(self, pdb_file):
         parser = PDBParser()
         structure = parser.get_structure("structure", pdb_file)
         return self.get_geo_from_structure(structure[0])
@@ -124,12 +142,33 @@ class RcsbGeoDataset(Dataset):
         geos = []
         for ch in structure:
             ch.atom_to_internal_coordinates(verbose=True)
-            angles = [get_angles(res.internal_coord) for res in ch.get_residues()]
-            residues = list(ch.get_residues())
+            residues = [res for res in ch.get_residues() if res.internal_coord is not None]
+            angles = [get_angles(res.internal_coord) for res in residues]
             distances = [get_distance(idx, residues) for idx, res in enumerate(residues)]
+            contacts = get_contacts(residues)
             if len(angles) != len(distances):
                 raise Exception("CA number missmatch")
-            geos.append((ch.id, [(a, b, c, x, y) * 16 for (a, b, c), (x, y) in list(zip(angles, distances))]))
+            graph_nodes = torch.tensor([[
+                math.sin(a),
+                math.cos(a),
+                math.sin(b),
+                math.cos(b),
+                math.sin(c),
+                math.cos(c),
+                x,
+                y
+            ] for (a, b, c), (x, y) in list(zip(angles, distances))], dtype=torch.float)
+            graph_edges = torch.tensor([
+                c for c, d in contacts
+            ], dtype=torch.int64)
+            graph_edge_attr = torch.tensor([
+                [d] for c, d in contacts
+            ], dtype=torch.float)
+            geos.append((ch.id, Data(
+                graph_nodes,
+                edge_index=graph_edges.t().contiguous(),
+                edge_attr=graph_edge_attr
+            )))
         return geos
 
     def get_chain_graph(self, ca: list, sequence: str):

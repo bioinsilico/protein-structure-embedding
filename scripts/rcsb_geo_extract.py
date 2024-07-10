@@ -23,6 +23,13 @@ def parse_args():
         required=True,
         help="Graph output path",
     )
+    parser.add_argument(
+        "--granularity",
+        type=str,
+        default="chain",
+        help="If the protein file/entry contains multiple proteins, process single chains or all combined. "
+             "Possible values: \"entry\" or \"chain\""
+    )
     cfg = parser.parse_args()
     cfg.device = "cuda" if torch.cuda.is_available() else "cpu"
     return cfg
@@ -33,7 +40,8 @@ def main():
     cfg = parse_args()
     RcsbGeoDataset(
         instance_list=cfg.instance_list,
-        geo_dir=f"{cfg.out_dir}"
+        geo_dir=cfg.out_dir,
+        granularity=cfg.granularity
     )
 
 

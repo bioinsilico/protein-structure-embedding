@@ -23,7 +23,9 @@ def get_poly_entities(data_container) -> set:
 def get_ca_coords(data_container, poly_ent_ids: set):
     atom_sites = data_container.getObj('atom_site')
     coords_current_chain = []
+    label_seq_current_chain = []
     polychains_coords = OrderedDict()
+    polychains_label_sed_ids = OrderedDict()
     polychains_seqs = OrderedDict()
     current_seq = []
     asym_id = None
@@ -39,6 +41,7 @@ def get_ca_coords(data_container, poly_ent_ids: set):
                 polychains_coords[asym_id] = coords_current_chain
                 polychains_seqs[asym_id] = "".join(current_seq)
             coords_current_chain = []
+            label_seq_current_chain = []
             current_seq = []
         aa_type = d_row["label_comp_id"]
         atom_type = d_row["label_atom_id"]
@@ -50,12 +53,16 @@ def get_ca_coords(data_container, poly_ent_ids: set):
                 float(d_row["Cartn_y"]),
                 float(d_row["Cartn_z"])
             ])
+            label_seq_current_chain.append(
+                d_row['label_seq_id']
+            )
             current_seq.append(protein_letters_3to1_extended[aa_type])
         asym_id = current_asym_id
     if len(coords_current_chain) >= min_num_residues and asym_id not in polychains_coords:
         polychains_coords[asym_id] = coords_current_chain
         polychains_seqs[asym_id] = "".join(current_seq)
-    return polychains_coords, polychains_seqs
+        polychains_label_sed_ids[asym_id] = label_seq_current_chain
+    return polychains_coords, polychains_seqs, polychains_label_sed_ids
 
 
 def get_coords_from_file(cif_file_url: str, fmt="bcif"):
@@ -71,31 +78,31 @@ def get_coords_from_file(cif_file_url: str, fmt="bcif"):
     data_container_list = mU.doImport(cif_file_url, fmt=fmt)
     data_container = data_container_list[0]
     poly_ent_ids = get_poly_entities(data_container)
-    chain_coords, chain_seqs = get_ca_coords(data_container, poly_ent_ids)
-    return chain_coords, chain_seqs
+    chain_coords, chain_seqs, chain_label_seqs = get_ca_coords(data_container, poly_ent_ids)
+    return chain_coords, chain_seqs, chain_label_seqs
 
 
 def get_coords_for_pdb_id(pdb_id: str):
     url = "https://models.rcsb.org/%s.bcif.gz" % pdb_id.lower()
-    chain_coords, chain_seqs = get_coords_from_file(url)
+    chain_coords, chain_seqs, chain_label_seqs = get_coords_from_file(url)
     print("Found %d valid protein chains in %s. Asym_ids are : %s" % (len(chain_coords), pdb_id, ",".join(chain_coords.keys())))
-    return chain_coords, chain_seqs
+    return chain_coords, chain_seqs, chain_label_seqs
 
 
 def get_coords_for_assembly_id(pdb_id: str, assembly_id: int):
     url = f"https://files.rcsb.org/pub/pdb/data/assemblies/mmCIF/all/{pdb_id.lower()}-assembly{assembly_id}.cif.gz"
-    chain_coords, chain_seqs = get_coords_from_file(url, fmt="mmcif")
+    chain_coords, chain_seqs, chain_label_seqs = get_coords_from_file(url, fmt="mmcif")
     print("Found %d valid protein chains in %s. Asym_ids are : %s" % (
         len(chain_coords),
         pdb_id,
         ",".join(chain_coords.keys())
     ))
-    return chain_coords, chain_seqs
+    return chain_coords, chain_seqs, chain_label_seqs
 
 
 def main():
     start = time.process_time()
-    chain_coords, chain_seqs = get_coords_for_pdb_id("2trx")
+    chain_coords, chain_seqs, chain_label_seqs = get_coords_for_pdb_id("2trx")
     end = time.process_time()
     print("Done in %f s. Keys: %s" % (end-start, ",".join(chain_coords.keys())))
 

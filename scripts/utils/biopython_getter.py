@@ -14,6 +14,7 @@ def __get_graph_from_structure(structure):
     chains = [s.id for s in structure.get_chains()]
     ca_map = OrderedDict()
     seq_map = OrderedDict()
+    label_sed_ids = OrderedDict()
     for ch in chains:
         ca_atoms = [atom for atom in structure.get_atoms() if
                     atom.get_name() == "CA" and is_aa(atom.parent.resname) and atom.parent.parent.id == ch]
@@ -21,4 +22,5 @@ def __get_graph_from_structure(structure):
             continue
         ca_map[ch] = [atom.get_coord() for atom in ca_atoms]
         seq_map[ch] = "".join([protein_letters_3to1_extended[c.parent.resname] for c in ca_atoms])
-    return ca_map, seq_map
+        label_sed_ids[ch] = [atom.full_id[3][1] for atom in ca_atoms]
+    return ca_map, seq_map, label_sed_ids

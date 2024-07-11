@@ -1,93 +1,109 @@
 import os
 import math
-import warnings
 
-import numpy as np
 import torch
 from torch_geometric.data import Data, Dataset
-from Bio.PDB import PDBParser, MMCIFParser
 
+from scripts.rcsb_datasets.geometry import angle_between_points, distance_between_points, exp_distance, \
+    angle_between_planes, angle_between_four_points
 from scripts.rcsb_datasets.rcsb_dataset import file_name
-import requests
-import gzip
-import io
+from scripts.utils.biopython_getter import get_coords_for_pdb_file
+
+from scripts.utils.coords_getter import get_coords_for_pdb_id
 
 
-def get_coordinates(res):
-    return res["CA"].get_coord()
+def get_angles(idx, residues):
+    if 0 < idx < len(residues) - 1:
+        res_0, idx_0 = residues[idx]
+        res_f, idx_f = residues[idx + 1]
+        res_b, idx_b = residues[idx - 1]
+        if idx_0 - idx_b == 1 and idx_f - idx_0 == 1:
+            a = angle_between_points(res_b, res_0, res_f)
+            return (
+                math.sin(a),
+                math.cos(a)
+            )
+    return 0, 0
 
 
-def get_angles(res_internal_coord):
-    psi = res_internal_coord.get_angle("psi")
-    phi = res_internal_coord.get_angle("phi")
-    omega = res_internal_coord.get_angle("omega")
-    return (
-        psi / 180 * math.pi if psi else 0.,
-        phi / 180 * math.pi if phi else 0.,
-        omega / 180 * math.pi if omega else 0.
-    )
+def contiguous(idx_i, idx_j):
+    if abs(idx_i - idx_j) == 1:
+        return 1
+    return 0
 
 
-def distance_exp(d):
-    return math.exp(-(d - 3.6) ** 2 / 12)
+def edge_angles(idx_i, idx_j, residues):
+    if (
+            (0 < idx_i < len(residues) - 1 and 0 < idx_j < len(residues) - 1) and
+            (residues[idx_i][1] - residues[idx_i-1][1] == 1) and
+            (residues[idx_i+1][1] - residues[idx_i][1] == 1) and
+            (residues[idx_j][1] - residues[idx_j-1][1] == 1) and
+            (residues[idx_j+1][1] - residues[idx_j][1] == 1)
+    ):
+        a = angle_between_planes(
+            (residues[idx_i-1][0], residues[idx_i][0], residues[idx_i+1][0]),
+            (residues[idx_j-1][0], residues[idx_j][0], residues[idx_j+1][0])
+        )
+        return (
+            math.sin(a),
+            math.cos(a)
+        )
+    return 0, 0
 
 
-def c_alpha_dist(ri, rj):
-    d = 3.8
-    if "CA" in ri and "CA" in rj:
-        one = ri["CA"].get_coord()
-        two = rj["CA"].get_coord()
-        d = np.linalg.norm(one - two)
-    return distance_exp(d)
-
-
-def get_distance(idx, residues):
-    forward = 0.
-    backward = 0.
-    if idx < len(residues) - 1:
-        forward = c_alpha_dist(residues[idx], residues[idx + 1])
-    if idx > 0:
-        backward = c_alpha_dist(residues[idx - 1], residues[idx])
-    return forward, backward
-
-
-def get_distance_pair(ri, rj):
-    if "CA" in ri and "CA" in rj:
-        one = ri["CA"].get_coord()
-        two = rj["CA"].get_coord()
-        return np.linalg.norm(one - two)
-    return 8.
+def orientation_angles(idx_i, idx_j, residues):
+    fs = 0
+    fc = 0
+    bs = 0
+    bc = 0
+    if (
+            (idx_i < len(residues) - 1) and
+            (idx_j < len(residues) - 1) and
+            (residues[idx_i + 1][1] - residues[idx_i][1] == 1) and
+            (residues[idx_j + 1][1] - residues[idx_j][1] == 1)
+    ):
+        a = angle_between_four_points(
+            residues[idx_i][0], residues[idx_i + 1][0],
+            residues[idx_j][0], residues[idx_j + 1][0]
+        )
+        fs = math.sin(a)
+        fc = math.cos(a)
+    if (
+            (idx_i > 0 and idx_j > 0) and
+            (residues[idx_i][1] - residues[idx_i-1][1] == 1) and
+            (residues[idx_j][1] - residues[idx_j-1][1] == 1)
+    ):
+        a = angle_between_four_points(
+            residues[idx_i - 1][0], residues[idx_i][0],
+            residues[idx_j - 1][0], residues[idx_j][0]
+        )
+        bs = math.sin(a)
+        bc = math.cos(a)
+    return fs, fc, bs, bc
 
 
 def get_contacts(residues):
-    map = []
-    for i, res_i in enumerate(residues):
-        for j, res_j in enumerate(residues):
+    contact_map = []
+    for i, (res_i, idx_i) in enumerate(residues):
+        for j, (res_j, idx_j) in enumerate(residues):
             if i == j:
                 continue
-            d = get_distance_pair(res_i, res_j)
+            d = distance_between_points(res_i, res_j)
             if d < 8.:
-                map.append(([i, j], distance_exp(d)))
-    return map
+                e = exp_distance(d)
+                c = contiguous(idx_i, idx_j)
+                es, ec = edge_angles(i, j, residues)
+                fs, fc, bs, bc = orientation_angles(i, j, residues)
+                contact_map.append(([i, j], (e, c, es, ec, fs, fc, bs, bc)))
+    return contact_map
 
 
 def get_res_attr(residues):
-    angles = [get_angles(res.internal_coord) for res in residues]
-    distances = [get_distance(idx, residues) for idx, res in enumerate(residues)]
+    angles = [get_angles(idx, residues) for idx, res in enumerate(residues)]
     contacts = get_contacts(residues)
-    coords = [get_coordinates(res) for res in residues]
-    if len(angles) != len(distances) or len(angles) != len(coords):
-        raise Exception("CA number missmatch")
     graph_nodes = torch.tensor([[
-        x, y, z,
-        math.sin(a),
-        math.cos(a),
-        math.sin(b),
-        math.cos(b),
-        math.sin(c),
-        math.cos(c),
-        f, b
-    ] for (x, y, z), (a, b, c), (f, b) in list(zip(coords, angles, distances))], dtype=torch.float)
+        a, b
+    ] for a, b in angles], dtype=torch.float)
     graph_edges = torch.tensor([
         c for c, d in contacts
     ], dtype=torch.int64)
@@ -97,14 +113,10 @@ def get_res_attr(residues):
     return graph_nodes, graph_edges, edge_attr
 
 
-def get_geo_from_entry_structure(structure):
+def get_geo_from_entry_structure(chain_coords):
     geos = []
     residues = []
-    for ch in structure:
-        ch.atom_to_internal_coordinates(verbose=True)
-        ch_residues = [res for res in ch.get_residues() if "CA" in res]
-        if len(ch_residues) < 6:
-            continue
+    for ch, ch_residues in chain_coords.items():
         residues.extend(ch_residues)
     graph_nodes, graph_edges, edge_attr = get_res_attr(residues)
     geos.append((None, Data(
@@ -115,15 +127,11 @@ def get_geo_from_entry_structure(structure):
     return geos
 
 
-def get_geo_from_single_chain_structure(structure):
+def get_geo_from_single_chain_structure(chain_coords):
     geos = []
-    for ch in structure:
-        ch.atom_to_internal_coordinates(verbose=True)
-        residues = [res for res in ch.get_residues() if "CA" in res]
-        if len(residues) < 6:
-            continue
+    for ch, residues in chain_coords.items():
         graph_nodes, graph_edges, edge_attr = get_res_attr(residues)
-        geos.append((ch.id, Data(
+        geos.append((ch, Data(
             graph_nodes,
             edge_index=graph_edges.t().contiguous(),
             edge_attr=edge_attr
@@ -171,19 +179,16 @@ class RcsbGeoDataset(Dataset):
             if pdb in self.ready_entries:
                 continue
             print(f"Processing PDB: {pdb}")
-            try:
-                for (ch, data) in self.get_geo_graph_from_pdb_entry(pdb.lower()):
-                    if data is None:
-                        continue
-                    file = pdb
-                    if ch is not None:
-                        file = f"{file}.{ch}"
-                    torch.save(
-                        data,
-                        os.path.join(self.geo_dir, f"{file}.pt")
-                    )
-            except Exception:
-                warnings.warn(f"PDB {pdb} failed")
+            for (ch, data) in self.get_geo_graph_from_pdb_entry(pdb.lower()):
+                if data is None:
+                    continue
+                file = pdb
+                if ch is not None:
+                    file = f"{file}.{ch}"
+                torch.save(
+                    data,
+                    os.path.join(self.geo_dir, f"{file}.pt")
+                )
 
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
@@ -203,23 +208,19 @@ class RcsbGeoDataset(Dataset):
                 )
 
     def get_geo_graph_from_pdb_entry(self, pdb):
-        pdb_url = f"https://files.rcsb.org/download/{pdb}.cif.gz"
-        response = requests.get(pdb_url)
-        response.raise_for_status()
-        parser = MMCIFParser()
-        with gzip.GzipFile(fileobj=io.BytesIO(response.content)) as gz_file:
-            return self.get_geo_from_structure(parser.get_structure(pdb, io.TextIOWrapper(gz_file))[0])
+        chain_coords, chain_seqs, chain_label_seqs = get_coords_for_pdb_id(pdb)
+        return self.get_geo_graph(chain_coords, chain_label_seqs)
 
     def get_geo_graph_from_pdb_file(self, pdb_file):
-        parser = PDBParser()
-        structure = parser.get_structure("structure", pdb_file)
-        return self.get_geo_from_structure(structure[0])
+        chain_coords, chain_seqs, chain_label_seqs = get_coords_for_pdb_file(pdb_file)
+        return self.get_geo_graph(chain_coords, chain_label_seqs)
 
-    def get_geo_from_structure(self, structure):
+    def get_geo_graph(self, chain_coords, chain_label_seqs):
+        chain_label_coords = dict([(ch, list(zip(chain_coords[ch], chain_label_seqs[ch]))) for ch in chain_coords])
         if self.granularity == "chain":
-            return get_geo_from_single_chain_structure(structure)
+            return get_geo_from_single_chain_structure(chain_label_coords)
         elif self.granularity == "entry":
-            return get_geo_from_entry_structure(structure)
+            return get_geo_from_entry_structure(chain_label_coords)
 
     def get_instance(self, idx):
         return self.instances[idx]

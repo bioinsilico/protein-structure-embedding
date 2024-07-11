@@ -26,6 +26,22 @@ def get_angles(idx, residues):
     return 0, 0
 
 
+def get_distances(idx, residues):
+    df = 0
+    db = 0
+    if idx < len(residues) - 1:
+        res_0, idx_0 = residues[idx]
+        res_f, idx_f = residues[idx + 1]
+        if idx_f - idx_0 == 1:
+            df = exp_distance(distance_between_points(res_f, res_0))
+    if idx > 0:
+        res_0, idx_0 = residues[idx]
+        res_b, idx_b = residues[idx -1]
+        if idx_0 - idx_b == 1:
+            db = exp_distance(distance_between_points(res_0, res_b))
+    return df, db
+
+
 def contiguous(idx_i, idx_j):
     if abs(idx_i - idx_j) == 1:
         return 1
@@ -100,10 +116,11 @@ def get_contacts(residues):
 
 def get_res_attr(residues):
     angles = [get_angles(idx, residues) for idx, res in enumerate(residues)]
+    distances = [get_distances(idx, residues) for idx, res in enumerate(residues)]
     contacts = get_contacts(residues)
     graph_nodes = torch.tensor([[
-        a, b
-    ] for a, b in angles], dtype=torch.float)
+        a, b, df, db
+    ] for (a, b), (df, db) in list(zip(angles, distances))], dtype=torch.float)
     graph_edges = torch.tensor([
         c for c, d in contacts
     ], dtype=torch.int64)

@@ -40,6 +40,7 @@ def get_ca_coords(data_container, poly_ent_ids: set):
             if len(coords_current_chain) >= min_num_residues:
                 polychains_coords[asym_id] = coords_current_chain
                 polychains_seqs[asym_id] = "".join(current_seq)
+                polychains_label_sed_ids[asym_id] = label_seq_current_chain
             coords_current_chain = []
             label_seq_current_chain = []
             current_seq = []

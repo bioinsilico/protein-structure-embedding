@@ -164,7 +164,7 @@ def main():
             chain_repr_batches = embedding_model.embedding(protein_repr, protein_mask)
             for ch_idx, ch_repr in enumerate(chain_repr_batches):
                 file_name = f"{cfg.out_embedding_dir}/{ch_name_list[ch_idx]}.csv"
-                if os.path.ismount(file_name):
+                if os.path.isfile(file_name):
                     raise Exception(f"File {file_name} exists")
                 print(f"Saved chain representation of {ch_name_list[ch_idx]}")
                 pd.DataFrame(ch_repr.to('cpu').numpy()).to_csv(

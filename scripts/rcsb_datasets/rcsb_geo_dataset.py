@@ -174,6 +174,7 @@ class RcsbGeoDataset(Dataset):
         self.ready_entries = set({})
         self.ready_list()
         self.load_list()
+        self.load_instances()
         super().__init__()
 
     def ready_list(self):
@@ -209,7 +210,8 @@ class RcsbGeoDataset(Dataset):
 
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
-            if file in self.ready_entries:
+            _file_name = file_name(file) if self.granularity == "entry" else file_name(file_name(file))
+            if _file_name in self.ready_entries:
                 continue
             print(f"Processing file: {file}")
             for (ch, data) in self.get_geo_graph_from_pdb_file(f"{self.instance_list}/{file}"):
@@ -223,6 +225,17 @@ class RcsbGeoDataset(Dataset):
                     data,
                     os.path.join(self.geo_dir, f"{file}.pt")
                 )
+
+    def load_instances(self):
+        for file in os.listdir(self.geo_dir):
+            self.instances.append(f"{file_name(file)}")
+
+    def check_file(self, file):
+        if self.granularity == "chain" and file_name(file_name(file)) in self.entries:
+            return True
+        if self.granularity == "entry" and file_name(file) in self.entries:
+            return True
+        return False
 
     def get_geo_graph_from_pdb_entry(self, pdb):
         chain_coords, chain_seqs, chain_label_seqs = get_coords_for_pdb_id(pdb)
@@ -247,4 +260,4 @@ class RcsbGeoDataset(Dataset):
 
     def get(self, idx):
         data = torch.load(os.path.join(self.geo_dir, f"{self.instances[idx]}.pt"))
-        return data
+        return data, self.instances[idx]

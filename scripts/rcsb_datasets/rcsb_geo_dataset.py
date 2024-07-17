@@ -210,20 +210,21 @@ class RcsbGeoDataset(Dataset):
 
     def load_list_dir(self):
         for file in os.listdir(self.instance_list):
-            _file_name = file_name(file) if self.granularity == "entry" else file_name(file_name(file))
-            if _file_name in self.ready_entries:
+            if file_name(file) in self.ready_entries:
                 continue
             print(f"Processing file: {file}")
             for (ch, data) in self.get_geo_graph_from_pdb_file(f"{self.instance_list}/{file}"):
                 if data is None:
                     continue
                 if file.endswith(".pdb") or file.endswith(".ent"):
-                    file = file_name(file)
+                    tensor_file = file_name(file)
+                else:
+                    tensor_file = file
                 if ch is not None:
-                    file = f"{file}.{ch}"
+                    tensor_file = f"{tensor_file}.{ch}"
                 torch.save(
                     data,
-                    os.path.join(self.geo_dir, f"{file}.pt")
+                    os.path.join(self.geo_dir, f"{tensor_file}.pt")
                 )
 
     def load_instances(self):

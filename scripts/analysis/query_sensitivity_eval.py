@@ -35,18 +35,24 @@ if __name__ == '__main__':
             (dom_j, dataloader.get_class(dom_j), dot(embedding_i, embedding_j))
             for dom_j, embedding_j in dataloader.domains()
         ]
-        sort_score = sorted([(d, c, s) for (d, c, s) in score if dom_i != d], key=itemgetter(2))
+        sort_score = sorted([(d, c, '%.2f' % s) for (d, c, s) in score if dom_i != d], key=itemgetter(2))
         sort_score.reverse()
         fp_idx = [idx for (idx, (d, c, s)) in enumerate(sort_score) if fold_fp(c, class_i)][0]
         tp = [(d, c, s) for (d, c, s) in sort_score[0:fp_idx] if c == class_i]
         n_classes = dataloader.get_n_classes(class_i) - 1
         sen = len(tp) / n_classes
         sen_values.append(sen)
-        if args.verbose:
-            print(dom_i, class_i, "SEN", sen, sort_score[0:5])
-        elif args.threshold and sen <= args.threshold:
-            print(dom_i, class_i, "SEN", sen, sort_score[0:5])
-            pos_found = 0
+        if args.verbose or (args.threshold and sen <= args.threshold):
+            print(
+                dom_i,
+                class_i,
+                f"#doms ({n_classes})",
+                "sen: %.2f" % sen,
+                f"failed at index: {fp_idx}",
+                f"{sort_score[fp_idx]}",
+                sort_score[0:5]
+            )
+            # pos_found = 0
             # for (dom_j, class_j, score) in sort_score:
             #     if class_j == class_i:
             #         pos_found +=1

@@ -123,16 +123,16 @@ class RcsbDataset(Dataset):
         return False
 
     def get_graph_from_entry_id(self, pdb):
-        cas, seqs = get_coords_for_pdb_id(pdb)
+        cas, seqs, seq_labels = get_coords_for_pdb_id(pdb)
         return self.get_graph_from_cas_and_seqs(cas, seqs)
 
     def get_graph_from_assembly_id(self, pdb_assembly_id):
         [entry_id, assembly_id] = pdb_assembly_id.split("-")
-        cas, seqs = get_coords_for_assembly_id(entry_id, assembly_id)
+        cas, seqs, seq_labels  = get_coords_for_assembly_id(entry_id, assembly_id)
         return self.get_graph_from_cas_and_seqs(cas, seqs)
 
     def get_graph_from_pdb_file(self, pdb_file):
-        cas, seqs = get_coords_for_pdb_file(pdb_file)
+        cas, seqs, seq_labels = get_coords_for_pdb_file(pdb_file)
         return self.get_graph_from_cas_and_seqs(cas, seqs)
 
     def get_graph_from_cas_and_seqs(self, cas, seqs):
